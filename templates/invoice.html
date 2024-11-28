@@ -1,0 +1,163 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <link href="https://fonts.googleapis.com/css?family=Poppins" rel="stylesheet">
+    <title>Invoice BasuriAutomotive</title>
+    <style type="text/css">
+        @page {
+            size: letter;
+            margin: 1cm;
+        }
+        body {
+            font-family: 'Poppins', sans-serif;
+        }
+        .header {
+            display: block;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        .header img {
+            height: 60px;
+            float: left;
+        }
+        .header h1 {
+            margin: 0;
+            float: left;
+            font-size: 36px;
+        }
+        .bill-number {
+            font-size: 36px;
+            font-weight: bold;
+            text-align: right;
+            margin: 0;
+        }
+        .company-info {
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        .company-info p {
+            font-size: 24px;
+            margin: 0;
+        }
+        .company-info .company-details {
+            width: 50%;
+            
+        }
+        .company-info .bill-to {
+            width: 50%;
+    
+        }
+        .table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 16px;
+        }
+        .table th, .table td {
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: left;
+            font-size: 14px !important;
+        }
+        .table th {
+            background-color: #eee;
+            font-size: 16px;
+        }
+        .total {
+            text-align: right;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <table style="border: none; width: 100%;">
+            <tr>
+              <td style="width: 33.33%;"><img src="	http://44.221.103.24/static/logo/logo.png" height="100px" width="100px" alt="BasuriAutomotive"><span style="font-size: 18px; margin-left:5px;"><b>Basuri Automotive</b></span></td>
+              <td style="width: 33.33%;"></td>
+              <td style="width: 33.33%; text-align: end; font-size: 22px;">#{{single_order.order_number}}</td>
+            </tr>
+        </table>
+    </div>
+    <table style="border: none; width: 100%; margin-bottom: 40px; margin-top: 40px;">
+        <tr>
+          <td style="width: 33.33%;"><div class="company-details">
+            
+            <span style="font-size: 18px;">23/24/25/26 SHREEJI INDUSTRIES,</span></br>
+            <span style="font-size: 18px;">B/H UDHYOG NAGER, KAMREJ CHAR</span></br>
+            <span style="font-size: 18px;">RASTA, SURAT - 394185 India</span></br>
+            <span style="font-size: 18px;">info@basuriautomotive.com</span></br></br>
+        </div></td>
+          <td style="width: 33.33%;"></td>
+          <td style="width: 33.33%; text-align: end; vertical-align: top;"><div class="company-details">
+            <span style="font-size: 18px;">{{single_order.created_at|date:"j-M-Y"}}</span></br></br>
+            <span style="font-size: 18px;">Bill To:</span></br>
+            <span style="font-size: 18px;">{{shipping_address.address_line_1}}</span></br>
+            <span style="font-size: 18px;">{{shipping_address.address_line_2}}</span></br>
+            <span style="font-size: 18px;">{{shipping_address.city}}, {{shipping_address.state}} - {{shipping_address.zip_code}} {{shipping_address.country}}</span></br>
+            <h2 style="font-size: 18px;"><b>{{single_order.user.profile.first_name}}</b></span></br>
+            <span style="font-size: 18px;">{{single_order.user.phone_number}}</span></br>
+            <span style="font-size: 18px;">{{single_order.user.email}}</span></br>
+        </div></td>
+        </tr>
+    </table>
+    <table class="table">
+		<thead>
+			<tr>
+				<th>Product</th>
+				<th>SKU</th>
+				<th>Quantity</th>
+				<th>Price</th>
+			</tr>
+		</thead>
+		<tbody>
+            {% for order_item in order_items %}
+			<tr>
+				<td style="width: 25%;">{{order_item.product.name}}</td>
+				<td style="width: 35%;">{{order_item.product.sku}}</td>
+				<td style="width: 15%;">{{order_item.quantity}}</td>
+				<td style="width: 25%;">{{single_order.currency.symbol}}{{order_item.unit_price}}</td>
+			</tr>
+            {% endfor %}
+            <tr class="total">
+				<td colspan="3">Total:</td>
+				<td>{{single_order.currency.symbol}}{{single_order.total_amount}}</td>
+			</tr>
+		</tbody>
+	</table>
+</br>
+    <div>
+        <!-- <h3>Payment Methods:</h3> -->
+        <!-- <ul>
+          <li>
+            <strong>Online Bank Transfer:</strong><br>
+            Account Name: PATEL KRUTARTH<br>
+            Account Number: 9726000100018899<br>
+            Bank: PUNJAB NATIONAL BANK
+          </li>
+          <li>
+            <strong>Google Pay/UPI:</strong><br>
+            We accept Google Pay/ UPI at 7778823117. Please mention bill number in payment notes.
+          </li>
+          <li>
+          <li>
+            <strong>Credit/Debit Card:</strong><br>
+            We accept Visa, MasterCard, and American Express.
+          </li>
+          <li>
+            <strong>Cash Payment:</strong><br>
+            Visit our office at [Address (Mentioned at top of bill)] to make a cash payment.
+          </li>
+        </ul> -->
+        
+        <h3>Terms and Conditions:</h3>
+        <ul>
+          <li>Payment is due within 7 days from the date of this invoice.</li>
+          <li>For any queries or concerns, contact us at 9033940324 or info@basuriautomotive.com</li>
+          <li>Thank you for choosing basuriautomotive!</li>
+        </ul>
+      </div>
+</body>
+</html>
