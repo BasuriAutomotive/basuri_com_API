@@ -1,3 +1,4 @@
+from decimal import Decimal
 from django.shortcuts import get_object_or_404, HttpResponse
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -6,10 +7,9 @@ from rest_framework import status
 from django.template.loader import get_template
 from xhtml2pdf import pisa
 
-from product.models import ProductGallery
-from accounts.models import Account
+
 from address.models import Address
-from .models import Order, OrderItem
+from .models import Order, OrderItem, OrderStatus, OrderStatusHistory
 
 
 class OrderListView(APIView):
@@ -208,50 +208,58 @@ class OrderTrackingAPIView(APIView):
         except Order.DoesNotExist:
             return Response({"detail": "Order not found or email does not match."}, status=status.HTTP_404_NOT_FOUND)
 
-        stepper_data = [
-            {
-                "label": "Order Placed",
-                "desc": "Your order has been placed successfully.",
-                "status": order.order_status in ['Pending', 'Accepted', 'Dispatch', 'Deliverd'],
-            },
-            {
-                "label": "Dispatch",
-                "desc": "Your order has been dispatched.",
-                "status": order.order_status in ['Dispatch', 'Deliverd'],
-            },
-            {
-                "label": "Delivered",
-                "desc": "Your order has been delivered.",
-                "status": order.order_status == 'Deliverd',
-            },
-        ]
+        # Fetch the status history for the order
+        status_history = OrderStatusHistory.objects.filter(order=order).order_by('position')
+        
+        # Construct stepper_data from status history
+        stepper_data = []
+        for status_entry in status_history:
+            stepper_data.append({
+                "label": status_entry.status.name,
+                "desc": status_entry.status.description or "",
+                "status": True  # Since it's in history, the status is achieved
+            })
+        
+        # Ensure any remaining statuses are marked as pending
+        all_statuses = OrderStatus.objects.all()
+        completed_status_ids = status_history.values_list('status_id', flat=True)
+        for status in all_statuses:
+            if status.id not in completed_status_ids:
+                stepper_data.append({
+                    "label": status.name,
+                    "desc": status.description or "",
+                    "status": False  # Status not yet achieved
+                })
 
-        # Get order items
+        # Fetch order items
         items = []
-        order_items = OrderItem.objects.filter(order=order)
+        sub_total = Decimal("0.00")
+        order_items = order.items.all()  # Assuming related_name="order_items" in OrderItem model
         for item in order_items:
             product = item.product
-            product_data = {
+            item_subtotal = Decimal(item.quantity) * item.unit_price
+            items.append({
                 "product": {
-                    "image": "https://basuriautomotive.com" + product.image.url if product.image else None,
+                    "image": "https://127.0.0.1:8000/media/products/images/HK631/1.webp/",
                     "name": product.name,
                 },
                 "quantity": item.quantity,
                 "unit_price": str(item.unit_price),
-                "subtotal": str(item.subtotal),
-            }
-            items.append(product_data)
+                "subtotal": f"{item_subtotal:.2f}",
+            })
+            sub_total += item_subtotal  # Add subtotal to the main sub_total
 
+        # Construct response data
         response_data = {
             "order_id": order.id,
             "stepper_data": stepper_data,
             "items": items,
-            "sub_total": str(order.total_amount),
-            "discount": "0.00",
+            "sub_total": f"{sub_total:.2f}",  # Assuming `sub_total` field exists
+            "discount": str(order.discount) if hasattr(order, 'discount') else "0.00",
             "total_amount": str(order.total_amount),
         }
 
-        return Response(response_data)
+        return Response(response_data, status=200)
 
 class DownloadInvoicePDFView(APIView):
     permission_classes = [IsAuthenticated]
