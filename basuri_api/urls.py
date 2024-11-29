@@ -9,7 +9,7 @@ urlpatterns = [
     path('apiserver/my_admin/', include('admin_panel.urls')),
     path('apiserver/accounts/', include('accounts.urls')),
     path('apiserver/address/', include('address.urls')),
-    path('apiserver/product/', include('product.urls')),
+    path('apiserver/products/', include('product.urls')),
     path('apiserver/utils/', include('utils.urls')),
     path('apiserver/cart/', include('cart.urls')),
     path('apiserver/order/', include('order.urls')),
