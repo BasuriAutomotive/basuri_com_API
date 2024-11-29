@@ -1,16 +1,22 @@
 from pathlib import Path
 from datetime import timedelta
+from decouple import config
+
+import paypalrestsdk
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-pgi2s#^q8fj6(^)l@15z!uub-*gw%q-$-1&^4l3@6%&=m=#a20'
+SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ['192.168.1.22', '127.0.0.1']
+# ALLOWED_HOSTS = ['192.168.1.22', '127.0.0.1', '192.168.1.189']
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='', cast=lambda v: [s.strip() for s in v.split(',')])
+CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='', cast=lambda v: [s.strip() for s in v.split(',')])
+SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=True, cast=bool)
 
 
 # Application definition
@@ -30,8 +36,10 @@ INSTALLED_APPS = [
     'utils',
     'review',
     'cart',
+    'checkout',
     'order',
     'payment',
+    'discount',
     'admin_panel',
 
     'corsheaders',
@@ -132,10 +140,13 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 #####################################################################################  CUSTOM CODE ################################################################################################
 
+CURRENT_URL = config('CURRENT_URL')
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",  # e.g., "http://192.168.1.10:3000"
+    "http://localhost:3000", "http://192.168.1.21:3000", "http://193.203.164.88"  # e.g., "http://192.168.1.10:3000"
 ]
+
+# CORS_ALLOWED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='', cast=lambda v: [s.strip() for s in v.split(',')])
 
 
 # USING CUSTOM USER MODEL
@@ -168,3 +179,9 @@ EMAIL_HOST_PASSWORD = 'Basuri@2425$' #config('EMAIL_HOST_PASSWORD')
 EMAIL_USE_TLS = False
 EMAIL_USE_SSL = True
 DEFAULT_FROM_EMAIL = 'info@basuriautomotive.com' #config('DEFAULT_FROM_EMAIL')
+
+paypalrestsdk.configure({
+    "mode": config('PAYPAL_MODE'),
+    "client_id": config('PAYPAL_API_CLIENT_ID'),
+    "client_secret": config('PAYPAL_API_CLIENT_SECRET')
+})

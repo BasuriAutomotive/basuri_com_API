@@ -6,7 +6,9 @@ from django.db.models import Q
 from review.models import Review
 from utils.models import Currencies
 from .models import Category, Product, ProductGallery, ProductPrice
+from django.conf import settings
 
+current_url = settings.CURRENT_URL
 
 class CategoryView(View):
     def get(self, request, slug):
@@ -91,6 +93,15 @@ class ProductDetailsView(View):
         
         country_code = request.GET.get('country_code', 'US')
         
+        # Add the main product image first
+        images=[]
+
+        images_data = {
+            'original': current_url + 'media/products/images/HK631/1.webp/',
+            'thumbnail': current_url + 'media/products/images/HK631/1.webp/'
+        }
+        images.append(images_data)
+
         product_price = ProductPrice.objects.filter(
             product_id=product.id, currencies__countries__code=country_code
         ).values('currencies__code', 'value', 'currencies__symbol').first()
@@ -158,6 +169,7 @@ class ProductDetailsView(View):
             'price': product_price,
             'files': files_dict,
             'reviews': renamed_reviews,
+            'images' : images
         }
 
         return JsonResponse(product_dict, safe=False)
@@ -207,7 +219,7 @@ class ProductSearchAPIView(View):
                     # 'category_slug': product.category.slug,
                     'name': product.name.title(),
                     'slug': f"/{product.category.slug}/{product.slug}",
-                    'image': f"https://basuriautomotive.com/media/{product.image}" if product.image else None,
+                    'image': current_url + 'media/products/images/HK631/1.webp/',
                     'prices': product_price if product_price else None
                 }
                 product_list.append(product_dict)

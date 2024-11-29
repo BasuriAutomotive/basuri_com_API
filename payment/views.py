@@ -15,7 +15,7 @@ from address.models import Address
 # from whatsapp_api.views import send_wp_message
 # from order.tasks import create_erp_order_celery, send_alert_celery
 
-host_url = config('PAYPAL_HOST_URL')
+host_url = 'http://localhost:3000/'
 
 def create_paypal_payment(request, order_number):
     # Order details
