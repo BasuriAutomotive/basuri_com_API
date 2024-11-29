@@ -13,9 +13,9 @@ urlpatterns = [
     path('api/login/', CustomerLoginView.as_view(), name="customer_login_api"),
     path('api/logout/', CustomerLogoutView.as_view(), name="customer_logout_api"),
     path('api/forgot_password/', ForgotPasswordView.as_view(), name="forgot_password_api"),
-    path('api/reset_password/', ResetPasswordView.as_view(), name="reset_password_api"),
+    path('api/reset-password/', ResetPasswordView.as_view(), name="reset_password_api"),
     path('api/change-password/', ChangePasswordView.as_view(), name="change_password_api"),
-    path('api/otp_validate/', OTPValidateView.as_view(), name="otp_validate_api"),
+    path('api/otp-validate/', OTPValidateView.as_view(), name="otp_validate_api"),
 
     path('api/review/', UserReviewListView.as_view(), name="user_review_api"),
 
