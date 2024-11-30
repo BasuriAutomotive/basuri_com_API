@@ -5,8 +5,11 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.permissions import IsAuthenticated
+
+
 from .models import Cart, CartItem
-from product.models import Currencies, Product, ProductPrice
+from product.models import Currencies, Product, ProductGallery, ProductPrice
+
 
 class AddToCartAPIView(APIView):
     authentication_classes = [JWTAuthentication]
@@ -54,7 +57,7 @@ class ViewCartAPIView(APIView):
                 {
                     'product_name': item.product.name, 
                     'product_sku': item.product.sku, 
-                    'product_image': '',  
+                    'product_image': ProductGallery.objects.filter(product=item.product, type="image").order_by('position').values_list('file', flat=True).first(),
                     'quantity': item.quantity, 
                     'product_price': ProductPrice.objects.filter(product_id=item.product.id, currencies__countries__code=country_code).values('currencies__code', 'value', 'currencies__symbol').first()
                 } for item in cart_items
@@ -116,7 +119,7 @@ class ViewCartNonAuthenticatedAPIView(APIView):
                 {
                     'product_name': item.product.name, 
                     'product_sku': item.product.sku,  
-                    'product_image': '',  
+                    'product_image': ProductGallery.objects.filter(product=item.product, type="image").order_by('position').values_list('file', flat=True).first(),
                     'quantity': item.quantity, 'product_price' : ProductPrice.objects.filter(product_id=item.product.id, currencies__countries__code=country_code).values('currencies__code', 'value', 'currencies__symbol').first()
                 } for item in cart_items
             ]
