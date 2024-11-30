@@ -73,13 +73,17 @@ class ProductListView(View):
                 product_price = product.productprice_set.filter(
                     currencies__countries__code='US'
                 ).values('currencies__code', 'value', 'currencies__symbol').first()
+            
+            # Fetch the first image for the product where type="image"
+            first_image = ProductGallery.objects.filter(product=product, type="image").order_by('position').first()
+            image_url = first_image.file if first_image else None
 
             product_dict = {
                 'category': product.category.name,
                 'category_slug': product.category.slug,
                 'name': product.name.title(),
                 'slug': "/" + product.category.slug + "/" + product.slug,
-                'image': '',  # Assuming you'll add image logic here
+                'image': image_url,
                 'prices': product_price
             }
             product_list.append(product_dict)
@@ -93,14 +97,16 @@ class ProductDetailsView(View):
         
         country_code = request.GET.get('country_code', 'US')
         
-        # Add the main product image first
-        images=[]
+        images = []
 
-        images_data = {
-            'original': current_url + 'media/products/images/HK631/1.webp/',
-            'thumbnail': current_url + 'media/products/images/HK631/1.webp/'
-        }
-        images.append(images_data)
+        gallery_images = ProductGallery.objects.filter(product=product, type='image').order_by('position')
+
+        for gallery_image in gallery_images:
+            images_data = {
+                'original': gallery_image.file,
+                'thumbnail': gallery_image.file,
+            }
+            images.append(images_data)
 
         product_price = ProductPrice.objects.filter(
             product_id=product.id, currencies__countries__code=country_code
@@ -213,13 +219,17 @@ class ProductSearchAPIView(View):
                         currencies__countries__code='US'
                     ).values('currencies__code', 'value', 'currencies__symbol').first()
 
+                # Fetch the first image for the product where type="image"
+                first_image = ProductGallery.objects.filter(product=product, type="image").order_by('position').first()
+                image_url = first_image.file if first_image else None
+
                 # Construct the product dictionary
                 product_dict = {
                     # 'category': product.category.name,
                     # 'category_slug': product.category.slug,
                     'name': product.name.title(),
                     'slug': f"/{product.category.slug}/{product.slug}",
-                    'image': current_url + 'media/products/images/HK631/1.webp/',
+                    'image': image_url,
                     'prices': product_price if product_price else None
                 }
                 product_list.append(product_dict)
