@@ -3,12 +3,12 @@ from django.shortcuts import get_object_or_404, HttpResponse
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from rest_framework import status
 from django.template.loader import get_template
 from xhtml2pdf import pisa
 
 
 from address.models import Address
+from product.models import ProductGallery
 from .models import Order, OrderItem, OrderStatus, OrderStatusHistory
 
 
@@ -31,11 +31,14 @@ class OrderListView(APIView):
                 
                 # site_url = request.build_absolute_uri(product.image.url)
 
+                # Fetch the first image for the product
+                first_image = ProductGallery.objects.filter(product=product, type="image").order_by('position').values_list('file', flat=True).first()
+
                 item_data = {
                     "product": {
                         "name": product.name,
                         "description": product.description,
-                        "image": ""
+                        "image": first_image
                     },
                     "quantity": item.quantity,
                     "unit_price": str(item.unit_price),
@@ -120,11 +123,14 @@ class OrderDetailView(APIView):
             # galleries = ProductGallery.objects.filter(product=product)
             # gallery_list = [{"image": gallery.image.url, "alt": product.name} for gallery in galleries]
 
+            # Fetch the first image for the product
+            first_image = ProductGallery.objects.filter(product=product, type="image").order_by('position').values_list('file', flat=True).first()
+
             item_data = {
                 "product": {
                     "name": product.name,
                     "description": product.description,
-                    "image": ""
+                    "image": first_image
                 },
                 "quantity": item.quantity,
                 "unit_price": str(item.unit_price),
@@ -238,9 +244,11 @@ class OrderTrackingAPIView(APIView):
         for item in order_items:
             product = item.product
             item_subtotal = Decimal(item.quantity) * item.unit_price
+            # Fetch the first image for the product
+            first_image = ProductGallery.objects.filter(product=product, type="image").order_by('position').values_list('file', flat=True).first()
             items.append({
                 "product": {
-                    "image": "https://127.0.0.1:8000/media/products/images/HK631/1.webp/",
+                    "image": first_image,
                     "name": product.name,
                 },
                 "quantity": item.quantity,
