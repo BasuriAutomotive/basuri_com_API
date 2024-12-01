@@ -35,13 +35,17 @@ class CategoryView(View):
                     product=product, currencies__countries__code='US'
                 ).values('currencies__code', 'value', 'currencies__symbol').first()
 
+            # Fetch the first image for the product where type="image"
+            first_image = ProductGallery.objects.filter(product=product, type="image").order_by('position').first()
+            image_url = first_image.file if first_image else None
+
             # Construct the product dictionary
             product_dict = {
                 'category': product.category.name,
                 'category_slug': product.category.slug,
                 'name': product.name.title(),
                 'slug': f"/{product.category.slug}/{product.slug}",
-                'image': '',  # Assuming you'd fill this with image URLs or paths
+                'image': image_url,
                 'prices': product_price
             }
             product_list.append(product_dict)
