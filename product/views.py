@@ -156,7 +156,7 @@ class ProductDetailsView(View):
             review_data = {
                 'user_email': "",
                 'user_name': review.name,
-                'user_image': review,
+                'user_image': f"{current_url}media/profile_images/default.png" if review.user and review.user.profile.image else "",
                 'user_rating': review.rating,
                 'review_title': review.title_comment,
                 'review_comment':review.comment,
