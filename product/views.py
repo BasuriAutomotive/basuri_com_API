@@ -147,24 +147,21 @@ class ProductDetailsView(View):
                     'name': file_obj['name'].title()
                 })
 
+        reviews = []
+
         # Fetch reviews for the product
-        reviews = Review.objects.filter(product=product, is_accepted=True).values(
-            'user__email', 'user__profile__first_name', 'user__profile__last_name', 'user__profile__image',  'rating', 'title_comment', 'comment'
-        )
+        reviews_obj = Review.objects.filter(product=product, is_accepted=True)
 
-        # Rename the keys in the reviews
-        renamed_reviews = [
-            {
-                'user_email': review['user__email'],
-                'user_name': review['user__profile__first_name'] + ' ' + review['user__profile__last_name'],
-                'user_image': review['user__profile__image'],
-                'user_rating': review['rating'],
-                'review_title': review['title_comment'],
-                'review_comment': review['comment']
+        for review in reviews_obj:
+            review_data = {
+                'user_email': "",
+                'user_name': review.name,
+                'user_image': review,
+                'user_rating': review.rating,
+                'review_title': review.title_comment,
+                'review_comment':review.comment,
             }
-            for review in reviews
-        ]
-
+            reviews.append(review_data)
         
 
         product_dict = {
@@ -178,7 +175,7 @@ class ProductDetailsView(View):
             'total' : total_price,
             'price': product_price,
             'files': files_dict,
-            'reviews': renamed_reviews,
+            'reviews': reviews,
             'images' : images
         }
 
