@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link
+    href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap"
+    rel="stylesheet"
+  />
+    <title>Don't Miss Out on Your Cart!</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Poppins', sans-serif;
+            background-color: #ffffff;
+        }
+
+        table {
+            border-spacing: 0;
+            width: 100%;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #eeeeee;
+            border: 1px solid #cccccc;
+        }
+
+        .logo {
+            text-align: center;
+            padding: 15px 0;
+        }
+
+        .logo img {
+            max-width: 120px;
+        }
+
+        .heading {
+            font-size: 24px;
+            font-weight: 600;
+            color: #333333;
+            text-align: center;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        .description {
+            font-size: 14px;
+            color: #666666;
+            line-height: 1.6;
+            text-align: center;
+            margin-bottom: 20px;
+            padding-right:20px;
+            padding-left:20px;
+        }
+
+        .cart-list {
+            background-color: #ffffff;
+            margin: 20px;
+            border: 1px solid #dddddd;
+        }
+
+        .cart-item {
+            display: flex;
+            align-items: start;
+            padding: 10px;
+            border-bottom: 1px solid #dddddd;
+        }
+
+        .cart-item:last-child {
+            border-bottom: none;
+        }
+
+        .product-image {
+            width: 90px;
+            height: 90px;
+            object-fit: cover;
+            margin-right: 10px;
+        }
+
+        .product-details {
+            flex-grow: 1;
+            font-size: 13px;
+        }
+
+        .product-details strong {
+            font-size: 14px;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .product-details span {
+            display: block;
+            color: #666666;
+        }
+
+
+
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            
+            
+        }
+
+        .footer h2 {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333333;
+        }
+
+        .footer p {
+            font-size: 14px;
+            color: #666666;
+            margin: 10px 0;
+        }
+
+       
+        .track-section{
+            text-align: center;
+        }
+
+        .track-btn {
+            display: inline-block;
+            padding: 6px 12px;
+            background-color: transparent;
+            color: #000;
+            text-decoration: none;
+            border: #000 1px solid;
+            border-radius: 0px;
+            font-size: 14px;
+            margin-bottom: 10px;
+            margin-top: 10px;
+        }
+
+        .track-btn a{
+            color: #000;
+        }
+
+        .social-icons {
+            margin-top: 20px;
+            padding-top: 8px;
+            padding-bottom: 8px;
+            
+        }
+
+
+        .social-icons img {
+            width: 30px;
+           
+        }
+
+        .wp-container {
+            white-space: nowrap; /* Prevent text wrapping */
+        }
+        .wp-image {
+            display: inline-block;
+            vertical-align: middle; /* Align image with text */
+        }
+        .wp-text {
+            display: inline-block;
+            vertical-align: middle; /* Align text with image */
+        }
+
+        @media screen and (max-width: 600px) {
+            .cart-item {
+                flex-wrap: wrap;
+            }
+
+            .product-image {
+                margin-bottom: 10px;
+            }
+
+            .cta a {
+                font-size: 14px;
+                padding: 10px 15px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <table role="presentation" class="container">
+        <tr style="background-color: #000000;">
+            <td class="logo">
+                <img src="http://193.203.164.88/media/logos/basuri_white_no_bg.png" alt="Logo">
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <h1 class="heading">Don't Miss Out!</h1>
+                <p class="description">We noticed you left some items in your cart. Complete your purchase now before they’re gone!</p>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <div class="cart-list">
+                    {% for item in cart_items %}
+                    <!-- Cart Item -->
+                    <div class="cart-item">
+                        <img src="{{ item.image_url }}" alt="{{ item.product_name }}" class="product-image">
+                        <div class="product-details">
+                            <strong>{{ item.product_name }}</strong>
+                            <span>Quantity: {{ item.quantity }}</span>
+                            <span>Price: {{ currency_symbol }}{{ item.price|floatformat:0 }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </td>
+        </tr>
+        <tr>
+            <td class="track-section">
+                <a class="track-btn" href="https://basuriautomotive.com/cart">Return to Your Cart</a>
+            </td>
+        </tr>
+
+
+        <tr>
+            <td class="footer">
+                <h2>Thanks for Shopping with Us!</h2>
+                <p>Need help? We're here for you!</p>
+
+               
+
+
+                <div class="wp-container">
+                    <a href="https://wa.me/919033940324?text=Hello%2C%20Basuri!" style="text-decoration: none;">
+                        <div class="wp-image">
+                            <img src="http://193.203.164.88/media/social_media/whatsapp.png" alt="WhatsApp Icon" 
+                            style="width: 20px; height: 20px; margin-right: 5px;">
+                        </div>
+                        <div class="wp-text">
+                            <p><span style="font-size: 13px; color: #333; margin-bottom: 5px;">+91 9033940324</span></p>
+                        </div>
+                    </a>
+                </div>
+
+
+
+                <div class="social-icons" style="background-color: #000000;">
+                    <div style="margin: 0; margin-top: 16px">
+                        <a href="https://www.facebook.com/BASURIAUTOMOTIVE" target="_blank" style="display: inline-block">
+                          <img
+                            width="36px"
+                            alt="Facebook"
+                            src="http://193.203.164.88/media/social_media/facebook.png"
+                          />
+                        </a>
+                        <a
+                          href="https://www.linkedin.com/company/basuri-automotive1993/"
+                          target="_blank"
+                          style="display: inline-block; margin-left: 8px"
+                        >
+                          <img
+                            width="36px"
+                            alt="Pinterest"
+                            src="http://193.203.164.88/media/social_media/pinterest.png"
+                        /></a>
+                        <a
+                          href="https://www.instagram.com/basuriairhorn/"
+                          target="_blank"
+                          style="display: inline-block; margin-left: 8px"
+                        >
+                          <img
+                            width="36px"
+                            alt="Twitter"
+                            src="http://193.203.164.88/media/social_media/instagram.png"
+                          />
+                        </a>
+                        <a
+                          href="https://youtube.com/@basuriautomotive9354"
+                          target="_blank"
+                          style="display: inline-block; margin-left: 8px"
+                        >
+                          <img
+                            width="36px"
+                            alt="Youtube"
+                            src="http://193.203.164.88/media/social_media/youtube.png"
+                        /></a>
+                      </div>
+                </div>
+                
+            </td>
+        </tr>
+
+    </table>
+</body>
+
+</html>

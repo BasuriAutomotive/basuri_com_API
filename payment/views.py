@@ -155,15 +155,28 @@ class FinalizeOrderAfterPaymentAPIView(APIView):
                         # send_alert_celery.delay(order.order_number)
                     # if erp_connection == True:
                         # create_erp_order_celery.delay(order.order_number)
-                    message = {
-                        'single_order' : order,
-                    }
-                    message = render_to_string("email/order_confirmation_email.html", message)
-                    subject= "Order Confirmation"
-                    email = order.user.email
-                    # send_email_celery.delay(message, subject, email) 
+                     
                 except :
                     pass
+                order_items = []
+                for item in order.items.all():
+                    first_image = (
+                        item.product.product_gallery.filter(type="image").order_by("position").first()
+                    )
+                    order_items.append({
+                        "product": item.product,
+                        "quantity": item.quantity,
+                        "unit_price": item.unit_price,
+                        "first_image": first_image,  # Add the first image
+                    })
+                message = {
+                    'single_order' : order,
+                    'order_items' : order_items,
+                }
+                message = render_to_string("emails/orders/confirmation.html", message)
+                subject= "Order Confirmation"
+                email = order.user.email
+                send_email_celery(message, subject, email)
                 return Response(response_data, status=status.HTTP_200_OK)
             else:
                 # Handle payment not approved
@@ -177,6 +190,14 @@ class FinalizeOrderAfterPaymentAPIView(APIView):
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+from django.core.mail import send_mail
+def send_email_celery(message, subject, email):
+    from_email = 'Basuri Automotive <info@basuriautomotive.com>' # SYSTEM SENDER EMAIL
+    recipient_list = [email]
+    print("Mail Celery Work")
+    send_mail(subject, message, from_email, recipient_list, html_message=message)
+    return None
 
 
 class RetryExistingPayPalPaymentAPIView(APIView):

@@ -12,6 +12,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.permissions import IsAuthenticated
+from django.template.loader import render_to_string
 
 from accounts.models import Account, Profile
 
@@ -45,10 +46,24 @@ class RegisterView(APIView):
 
     def send_otp(self, otp, user):
         subject = 'Password Reset OTP Code'
-        message = f'Your OTP for login is: {otp}'
         from_email = 'info@basuriautomotive.com'  # SYSTEM SENDER EMAIL
         recipient_list = [user.email]
-        send_mail(subject, message, from_email, recipient_list)
+        
+        # Render the email template
+        context = {
+            'otp': otp,
+            'user': user,
+        }
+        message = render_to_string('emails/register.html', context)
+
+        # Send the email
+        send_mail(
+            subject=subject,
+            message='',  # Empty plain text body
+            html_message=message,  # HTML content
+            from_email=from_email,
+            recipient_list=recipient_list
+        )
 
 class OTPValidateView(APIView):
 
