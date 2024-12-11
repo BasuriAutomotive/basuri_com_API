@@ -20,7 +20,7 @@ class OrderStatusHistoryInline(admin.TabularInline):
 @admin.register(Order)
 class OrderAdmin(BaseAdmin):
     """Admin view for Order"""
-    list_display = ('order_number', 'user', 'total_amount', 'order_date', 'total_amount', 'is_paid', 'tracking_number')
+    list_display = ('order_number', 'user', 'total_amount', 'order_date', 'total_amount', 'is_paid', 'so_number', 'tracking_number')
     list_filter = BaseAdmin.list_filter + ('is_paid', 'checkout_type', 'currency')  # Extend BaseAdmin filters
     search_fields = ('order_number', 'user__email', 'tracking_number', 'so_number')
     readonly_fields = BaseAdmin.readonly_fields + ('order_number', 'order_date', 'payment_date', 'provider_order_id', 'payment_id', 'signature_id')
