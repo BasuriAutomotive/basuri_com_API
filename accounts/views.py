@@ -4,7 +4,6 @@ from django.conf import settings
 from django.shortcuts import get_object_or_404
 from django.core.files.storage import default_storage
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.mail import send_mail
 from django.contrib.auth import login, authenticate, logout
 from rest_framework import status
 from rest_framework.response import Response
@@ -12,9 +11,11 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.permissions import IsAuthenticated
-from django.template.loader import render_to_string
+
 
 from accounts.models import Account, Profile
+from utils.views import send_otp
+
 
 class RegisterView(APIView):
     authentication_classes = []
@@ -40,30 +41,11 @@ class RegisterView(APIView):
         profile.user_id = user.id
         profile.save()
 
-        self.send_otp(otp, user)
+        subject = "Verify Your Email - Basuri Automotive"
+        send_otp(otp, user, subject)
 
         return Response({'detail': 'Account created successfully. Check your email for OTP.'}, status=status.HTTP_201_CREATED)
 
-    def send_otp(self, otp, user):
-        subject = 'Password Reset OTP Code'
-        from_email = 'info@basuriautomotive.com'  # SYSTEM SENDER EMAIL
-        recipient_list = [user.email]
-        
-        # Render the email template
-        context = {
-            'otp': otp,
-            'user': user,
-        }
-        message = render_to_string('emails/register.html', context)
-
-        # Send the email
-        send_mail(
-            subject=subject,
-            message='',  # Empty plain text body
-            html_message=message,  # HTML content
-            from_email=from_email,
-            recipient_list=recipient_list
-        )
 
 class OTPValidateView(APIView):
 
@@ -134,26 +116,21 @@ class ForgotPasswordView(APIView):
     def post(self, request, *args, **kwargs):
         email = request.data.get('email')
         if Account.objects.filter(email=email).exists():
-            current_user = Account.objects.get(email=email)
+            user = Account.objects.get(email=email)
 
             otp = str(random.randint(100000, 999999))
 
-            profile = Profile.objects.get(user=current_user)
+            profile = Profile.objects.get(user=user)
             profile.otp = otp
             profile.save()
 
-            self.send_otp(otp, current_user)
+            subject = "Reset Your Password - Basuri Automotive"
+            send_otp(otp, user, subject)
 
             return Response({'detail': 'OTP Sent on Your Email!'}, status=status.HTTP_200_OK)
         else:
             return Response({'detail': 'Account does not exist!'}, status=status.HTTP_400_BAD_REQUEST)
 
-    def send_otp(self, otp, user):
-        subject = 'Password Reset OTP Code'
-        message = f'Your OTP for login is: {otp}'
-        from_email = 'info@basuriautomotive.com'  # SYSTEM SENDER EMAIL
-        recipient_list = [user.email]
-        send_mail(subject, message, from_email, recipient_list)
 
 class OTPValidateView(APIView):
 
