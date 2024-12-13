@@ -16,7 +16,8 @@ from order.tasks import send_alert_celery
 # from whatsapp_api.views import send_wp_message
 # from order.tasks import create_erp_order_celery, send_alert_celery
 
-host_url = 'http://localhost:3000/'
+
+current_url = settings.CURRENT_URL
 
 def create_paypal_payment(request, order_number):
     # Order details
@@ -64,7 +65,7 @@ class ExecutePayPalPaymentAPIView(APIView):
             # Payment executed successfully
             # Redirect to your React app's success path with payment_id as a query parameter
             
-            success_url = host_url + f"order/order-complete?id={order.id}"
+            success_url = current_url + f"order/order-complete?id={order.id}"
 
             # remove cart item
             try:
@@ -76,7 +77,7 @@ class ExecutePayPalPaymentAPIView(APIView):
             return redirect(success_url)
         else:
             # Handle payment execution failure
-            failure_url = host_url + f"order/payment-fail?id={order.id}"
+            failure_url = current_url + f"order/payment-fail?id={order.id}"
             return redirect(failure_url)
 
 class CancelPayPalPaymentAPIView(APIView):
@@ -89,7 +90,7 @@ class CancelPayPalPaymentAPIView(APIView):
         # Order.objects.filter(order_number=order_number).update(is_paid=False, status='cancelled')
         
         # Redirect to your React route for payment cancellation
-        failure_url = host_url + f"order/payment-fail?id={order_id}"
+        failure_url = current_url + f"order/payment-fail?id={order_id}"
         return redirect(failure_url)
 
 class FinalizeOrderAfterPaymentAPIView(APIView):
