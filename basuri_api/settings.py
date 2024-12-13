@@ -199,4 +199,4 @@ CELERY_BROKER_CONNECTION_RETRY = True
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
 # Define a custom interval schedule
-four_times_a_day_schedule = schedule(run_every=timedelta(hours=6))
+# four_times_a_day_schedule = schedule(run_every=timedelta(hours=6))
