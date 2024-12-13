@@ -154,9 +154,9 @@ class ProductDetailsView(View):
 
         for review in reviews_obj:
             review_data = {
-                'user_email': "",
+                'user_email': review.user.email if review.user else "",
                 'user_name': review.name,
-                'user_image': f"{current_url}media/profile_images/default.png" if review.user and review.user.profile.image else "",
+                'user_image': f"{current_url}media/profile_images/default.png" if review.user and review.user.profile.image else f"{current_url}media/profile_images/default.png",
                 'user_rating': review.rating,
                 'review_title': review.title_comment,
                 'review_comment':review.comment,
