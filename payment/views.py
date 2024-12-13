@@ -11,6 +11,7 @@ from decouple import config
 from cart.models import Cart, CartItem
 from order.models import Order
 from address.models import Address
+from order.tasks import send_alert_celery
 # from base.tasks import send_email_celery
 # from whatsapp_api.views import send_wp_message
 # from order.tasks import create_erp_order_celery, send_alert_celery
@@ -140,6 +141,12 @@ class FinalizeOrderAfterPaymentAPIView(APIView):
                         for item in order.items.all()
                     ]
                 }
+
+                try: 
+                    send_alert_celery.delay(order.order_number)
+                except :
+                    pass
+                
                 try:
                     template_id = 'basuriautomotive_com_order_confirmation_v1'
                     name = order.user.profile.first_name + ' ' + order.user.profile.last_name
@@ -195,7 +202,6 @@ from django.core.mail import send_mail
 def send_email_celery(message, subject, email):
     from_email = 'Basuri Automotive <info@basuriautomotive.com>' # SYSTEM SENDER EMAIL
     recipient_list = [email]
-    print("Mail Celery Work")
     send_mail(subject, message, from_email, recipient_list, html_message=message)
     return None
 
