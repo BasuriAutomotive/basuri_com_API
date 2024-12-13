@@ -11,7 +11,7 @@ from decouple import config
 from cart.models import Cart, CartItem
 from order.models import Order
 from address.models import Address
-from order.tasks import send_alert_celery
+from order.tasks import send_email_celery
 # from base.tasks import send_email_celery
 # from whatsapp_api.views import send_wp_message
 # from order.tasks import create_erp_order_celery, send_alert_celery
@@ -142,11 +142,6 @@ class FinalizeOrderAfterPaymentAPIView(APIView):
                         for item in order.items.all()
                     ]
                 }
-
-                try: 
-                    send_alert_celery.delay(order.order_number)
-                except :
-                    pass
                 
                 try:
                     template_id = 'basuriautomotive_com_order_confirmation_v1'
@@ -160,7 +155,6 @@ class FinalizeOrderAfterPaymentAPIView(APIView):
                     if no_production == False:
                         tracking = True
                         # send_wp_message(name, order_number_wp, date, template_id, billing.contact_phone)
-                        # send_alert_celery.delay(order.order_number)
                     # if erp_connection == True:
                         # create_erp_order_celery.delay(order.order_number)
                      
@@ -184,7 +178,7 @@ class FinalizeOrderAfterPaymentAPIView(APIView):
                 message = render_to_string("emails/orders/confirmation.html", message)
                 subject= "Order Confirmation"
                 email = order.user.email
-                send_email_celery(message, subject, email)
+                send_email_celery.delay(message, subject, email)
                 return Response(response_data, status=status.HTTP_200_OK)
             else:
                 # Handle payment not approved
@@ -199,12 +193,7 @@ class FinalizeOrderAfterPaymentAPIView(APIView):
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
-from django.core.mail import send_mail
-def send_email_celery(message, subject, email):
-    from_email = 'Basuri Automotive <info@basuriautomotive.com>' # SYSTEM SENDER EMAIL
-    recipient_list = [email]
-    send_mail(subject, message, from_email, recipient_list, html_message=message)
-    return None
+
 
 
 class RetryExistingPayPalPaymentAPIView(APIView):
