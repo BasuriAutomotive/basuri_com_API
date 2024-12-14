@@ -196,8 +196,9 @@ class FinalizeOrderAfterPaymentAPIView(APIView):
                 except :
                     pass
 
-                
                 return Response(response_data, status=status.HTTP_200_OK)
+            
+
             else:
                 # Handle payment not approved
                 response_data = {
