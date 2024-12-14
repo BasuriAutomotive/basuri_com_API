@@ -11,7 +11,7 @@ from decouple import config
 from cart.models import Cart, CartItem
 from order.models import Order
 from address.models import Address
-from order.tasks import send_email_celery
+from order.tasks import send_email_celery, create_erp_order_celery
 # from base.tasks import send_email_celery
 # from whatsapp_api.views import send_wp_message
 # from order.tasks import create_erp_order_celery, send_alert_celery
@@ -142,25 +142,25 @@ class FinalizeOrderAfterPaymentAPIView(APIView):
                         for item in order.items.all()
                     ]
                 }
+
+
+               
                 
-                try:
-                    template_id = 'basuriautomotive_com_order_confirmation_v1'
-                    name = order.user.profile.first_name + ' ' + order.user.profile.last_name
-                    order_number_wp = "#" + order.order_number
-                    date = "Nov 20, 2024"
-                    print(template_id, order.user.phone_number, date, name, order_number_wp)
-                    billing  = Address.objects.get(id=order.billing_address)
-                    no_production =  config('DEBUG', default=False, cast=bool)
-                    erp_connection =  config('ERP_CONNECTION', default=False, cast=bool)
-                    if no_production == False:
-                        tracking = True
-                        # send_wp_message(name, order_number_wp, date, template_id, billing.contact_phone)
-                    # if erp_connection == True:
-                        # create_erp_order_celery.delay(order.order_number)
-                     
-                except :
-                    pass
+                # try:
+                #     template_id = 'basuriautomotive_com_order_confirmation_v1'
+                #     name = order.user.profile.first_name + ' ' + order.user.profile.last_name
+                #     order_number_wp = "#" + order.order_number
+                #     date = "Nov 20, 2024"
+                #     print(template_id, order.user.phone_number, date, name, order_number_wp)
+                #     billing  = Address.objects.get(id=order.billing_address)
+                #     if no_production == False:
+                #         tracking = True
+                #         # send_wp_message(name, order_number_wp, date, template_id, billing.contact_phone)
+                # except :
+                #     pass
+
                 order_items = []
+                
                 for item in order.items.all():
                     first_image = (
                         item.product.product_gallery.filter(type="image").order_by("position").first()
@@ -171,14 +171,32 @@ class FinalizeOrderAfterPaymentAPIView(APIView):
                         "unit_price": item.unit_price,
                         "first_image": first_image,  # Add the first image
                     })
-                message = {
+
+
+                # SEND CONFIRMATION EMAIL TO CUSTOMER
+                try:
+                    message = {
                     'single_order' : order,
                     'order_items' : order_items,
-                }
-                message = render_to_string("emails/orders/confirmation.html", message)
-                subject= "Order Confirmation"
-                email = order.user.email
-                send_email_celery.delay(message, subject, email)
+                    }
+                    message = render_to_string("emails/orders/confirmation.html", message)
+                    subject= "Order Confirmation"
+                    email = order.user.email
+                    send_email_celery.delay(message, subject, email)
+                except:
+                    pass
+
+
+                # CREATE ORDER ON ERP
+                try:
+                    # no_production =  config('DEBUG', default=False, cast=bool)
+                    erp_connection =  config('ERP_CONNECTION', default=False, cast=bool)
+                    if erp_connection == True:
+                        create_erp_order_celery.delay(order.order_number)
+                except :
+                    pass
+
+                
                 return Response(response_data, status=status.HTTP_200_OK)
             else:
                 # Handle payment not approved

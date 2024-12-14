@@ -24,103 +24,103 @@ def send_email_celery(message, subject, email):
 #     return None
 
 
-# # ERP ORDER GENERATE
-# @shared_task
-# def create_erp_order_celery(order_number):
-#     try:
+# ERP ORDER GENERATE
+@shared_task
+def create_erp_order_celery(order_number):
+    try:
         
-#         task_chain = chain(
-#             get_token.s(), 
-#             create_order.s(order_number),
-#         )()
-#         so_number = task_chain.get()
+        task_chain = chain(
+            get_token.s(), 
+            create_order.s(order_number),
+        )()
+        so_number = task_chain.get()
         
-#     except Exception as e:
-#         # Handle the exception gracefully
-#         error_message = f"An error occurred: {e}"
-#         print(error_message)
-#         return error_message
-#     return so_number
+    except Exception as e:
+        # Handle the exception gracefully
+        error_message = f"An error occurred: {e}"
+        print(error_message)
+        return error_message
+    return so_number
 
 
-# # GET TOKEN FROM ERP
-# @shared_task
-# def get_token():
-#     api_url = config('TOKEN_API_URL')
-#     username = 'info@basuriautomotive.com'
-#     password = config('PASSWORD')
-#     if username is None or password is None:
-#         return None
-#     data = {
-#         'username': username,
-#         'password': password
-#     }
-#     response = requests.post(api_url, data=data)
-#     if response.status_code == 200:
-#         token = response.json().get('data', {}).get('access')
-#         return token
-#     else:
-#         return None
+# GET TOKEN FROM ERP
+@shared_task
+def get_token():
+    api_url = config('TOKEN_API_URL')
+    username = 'info@basuriautomotive.com'
+    password = config('PASSWORD')
+    if username is None or password is None:
+        return None
+    data = {
+        'username': username,
+        'password': password
+    }
+    response = requests.post(api_url, data=data)
+    if response.status_code == 200:
+        token = response.json().get('data', {}).get('access')
+        return token
+    else:
+        return None
 
 
-# # CREATE ORDER IN ERP
-# @shared_task
-# def create_order(token, order_number):
-#     order = Order.objects.get(order_number=order_number)
-#     api_url = config('ORDER_API_URL')
-#     print(token,"create_order fuction")
-#     headers = {
-#         'Authorization': f'Bearer {token}',
-#         'Content-Type': 'application/json'
-#     }
-#     shipping_address = Address.objects.get(id=int(order.shipping_address))
-#     billing_address = Address.objects.get(id=int(order.billing_address))
-#     data = {
-#         "part_no": [],
-#         "qty": [],
-#         "order_no": order.order_number,
-#         "remarks": f'''
-#         Customer           : {order.user.profile.first_name} {order.user.profile.last_name}
-#         Email              : {order.user.email}
-#         Phone              : {order.user.phone_number}
-#         Shipping_Address   : {shipping_address.address_line_1}, {shipping_address.address_line_2} 
-#         Shipping_State     : {shipping_address.state}
-#         Shipping_City      : {shipping_address.city}
-#         Shipping_Country   : {shipping_address.country} 
-#         Shipping_Zip Code  : {shipping_address.zip_code} 
-#         Billing_Address    : {billing_address.address_line_1}, {billing_address.address_line_2} 
-#         Billing_State      : {billing_address.state}
-#         Billing_City       : {billing_address.city},
-#         Billing_Country    : {shipping_address.country} 
-#         Billing_Zip Code   : {billing_address.zip_code}
-#         Payment            : {order.payment_id}
-#         TotalAmount        : {order.currency.symbol}{order.total_amount}'''
-#     }
-#     country = order.country
-#     country = Country.objects.get(name=country)
-#     sku_code=country.continents
+# CREATE ORDER IN ERP
+@shared_task
+def create_order(token, order_number):
+    order = Order.objects.get(order_number=order_number)
+    api_url = config('ORDER_API_URL')
+    print(token,"create_order fuction")
+    headers = {
+        'Authorization': f'Bearer {token}',
+        'Content-Type': 'application/json'
+    }
+    shipping_address = Address.objects.get(id=int(order.shipping_address))
+    billing_address = Address.objects.get(id=int(order.billing_address))
+    data = {
+        "part_no": [],
+        "qty": [],
+        "order_no": order.order_number,
+        "remarks": f'''
+        Customer           : {order.user.profile.first_name} {order.user.profile.last_name}
+        Email              : {order.user.email}
+        Phone              : {order.user.phone_number}
+        Shipping_Address   : {shipping_address.address_line_1}, {shipping_address.address_line_2} 
+        Shipping_State     : {shipping_address.state}
+        Shipping_City      : {shipping_address.city}
+        Shipping_Country   : {shipping_address.country} 
+        Shipping_Zip Code  : {shipping_address.zip_code} 
+        Billing_Address    : {billing_address.address_line_1}, {billing_address.address_line_2} 
+        Billing_State      : {billing_address.state}
+        Billing_City       : {billing_address.city},
+        Billing_Country    : {shipping_address.country} 
+        Billing_Zip Code   : {billing_address.zip_code}
+        Payment            : {order.payment_id}
+        TotalAmount        : {order.currency.symbol}{order.total_amount}'''
+    }
+    country = order.country
+    country = Country.objects.get(name=country)
+    sku_code=country.continents
 
-#     for i in order.items.all():
-#         if i.product.category.name == "Basuri Air Horns":
-#             data["part_no"].append(sku_code + i.product.sku)
-#             data["qty"].append(i.quantity)
-#         else:
-#             data["part_no"].append(i.product.sku)
-#             data["qty"].append(i.quantity)
-#     print(data)
+    for i in order.items.all():
+        if i.product.category.name == "Basuri Air Horns":
+            data["part_no"].append(sku_code + i.product.sku)
+            data["qty"].append(i.quantity)
+        else:
+            data["part_no"].append(i.product.sku)
+            data["qty"].append(i.quantity)
+    print(data)
 
-#     response = requests.post(api_url, headers=headers, json=data)
-#     print(response.json,"this is respones")
-#     if response.status_code == 200:
-#         order_data = response.json()
-#         print(order_data,"response Order_data")
-#         so_number = order_data.get('order_no')
-#         print(so_number,"so number")
-#         order.so_number = so_number
-#         order.save()
-#         return so_number
-#     else:
-#         return None
+    response = requests.post(api_url, headers=headers, json=data)
+    print(response.json,"this is respones")
+    if response.status_code == 200:
+        order_data = response.json()
+        print(order_data,"response Order_data")
+        so_number = order_data.get('order_no')
+        print(so_number,"so number")
+        order.so_number = so_number
+        order.save()
+        return so_number
+    else:
+        return None
 
 # @shared_task
 # def order_auto_update():
