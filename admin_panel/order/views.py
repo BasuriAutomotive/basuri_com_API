@@ -8,7 +8,7 @@ from xhtml2pdf import pisa
 
 
 
-from accounts.models import Profile
+from product.models import ProductGallery
 from address.models import Address
 from order.models import Order, OrderItem
 from accounts.permissions import IsStaff
@@ -34,12 +34,12 @@ class OrderListView(APIView):
                 
                 
                 # site_url = request.build_absolute_uri(product.image.url)
-
+                first_image = ProductGallery.objects.filter(product=product, type="image").order_by('position').values_list('file', flat=True).first()
                 item_data = {
                     "product": {
                         "name": product.name,
                         "description": product.description,
-                        "image": ""
+                        "image": first_image
                     },
                     "quantity": item.quantity,
                     "unit_price": str(item.unit_price),
@@ -96,6 +96,7 @@ class OrderListView(APIView):
                 "customer_profile": {
                 
                     "full_name": customer.profile.first_name + ' ' + customer.profile.last_name,
+                    "id": customer.id,
                     "email": customer.email,
                     "phone": customer.phone_number,
                     "total_orders": total_orders,
