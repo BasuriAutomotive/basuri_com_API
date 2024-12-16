@@ -47,4 +47,4 @@ class OrderStatusHistoryAdmin(BaseAdmin):
     """Admin view for OrderStatusHistory"""
     list_display = ('order', 'status', 'changed_at', 'position')
     search_fields = ('order__order_number', 'status__name')
-    readonly_fields = BaseAdmin.readonly_fields + ('order', 'changed_at', 'position')
+    # readonly_fields = BaseAdmin.readonly_fields + ('order', 'changed_at', 'position')
