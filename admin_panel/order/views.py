@@ -57,9 +57,8 @@ class OrderListView(APIView):
                     "desc": history.status.description,
                     # "icon": history.status.icon,
                     # "position": history.position,
-                    "status": history.position == max(order.status_history.values_list('position', flat=True))
                 }
-                for history in order.status_history.all().order_by('-position')
+                for history in order.status_history.all()
             ]
             
             billing_address = get_object_or_404(Address, id=order.billing_address)
