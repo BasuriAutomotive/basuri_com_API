@@ -52,7 +52,7 @@ class OrderListView(APIView):
                     "label": history.status.name,
                     "desc": history.status.description,
                     # "icon": history.status.icon,
-                    "position": history.position,
+                    # "position": history.position,
                     "status": history.position == max(order.status_history.values_list('position', flat=True))
                 }
                 for history in order.status_history.all()
