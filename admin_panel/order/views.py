@@ -36,6 +36,7 @@ class OrderListView(APIView):
                 # site_url = request.build_absolute_uri(product.image.url)
                 first_image = ProductGallery.objects.filter(product=product, type="image").order_by('position').values_list('file', flat=True).first()
                 item_data = {
+                    "id": item.id,
                     "product": {
                         "name": product.name,
                         "description": product.description,
