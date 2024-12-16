@@ -8,7 +8,7 @@ from xhtml2pdf import pisa
 
 
 
-from accounts.models import Account
+from accounts.models import Profile
 from address.models import Address
 from order.models import Order, OrderItem
 from accounts.permissions import IsStaff
@@ -18,14 +18,14 @@ class OrderListView(APIView):
     permission_classes = [IsAuthenticated, IsStaff]
 
     def get(self, request):
-        customer = request.user
-        total_orders = Order.objects.filter(user=customer).count()
         orders = Order.objects.get_query()
         order_list = []
 
         
         for order in orders:
             
+            customer = order.user
+            total_orders = Order.objects.filter(user=customer).count()
             items = OrderItem.objects.filter(order=order)
             item_list = []
             
@@ -94,8 +94,8 @@ class OrderListView(APIView):
                     "contact_phone": shipping_address.contact_phone,
                 },
                 "customer_profile": {
-                    
-                    "full_name": customer.profile.first_name + customer.profile.last_name,
+                
+                    "full_name": customer.profile.first_name + ' ' + customer.profile.last_name,
                     "email": customer.email,
                     "phone": customer.phone_number,
                     "total_orders": total_orders,
