@@ -39,6 +39,7 @@ class OrderListView(APIView):
                     "id": item.id,
                     "product": {
                         "name": product.name,
+                        "sku": product.sku,
                         "description": product.description,
                         "image": first_image
                     },
