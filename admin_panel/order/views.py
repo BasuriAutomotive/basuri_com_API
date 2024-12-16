@@ -97,8 +97,9 @@ class OrderListView(APIView):
                 },
                 "customer_profile": {
                 
-                    "full_name": customer.profile.first_name + ' ' + customer.profile.last_name,
                     "id": customer.id,
+                    "full_name": customer.profile.first_name + ' ' + customer.profile.last_name,
+                    "image" : customer.profile.image,
                     "email": customer.email,
                     "phone": customer.phone_number,
                     "total_orders": total_orders,
