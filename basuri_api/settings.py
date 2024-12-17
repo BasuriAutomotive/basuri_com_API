@@ -163,11 +163,12 @@ REST_FRAMEWORK = {
     ],
 }
 
+# 'ACCESS_TOKEN_LIFETIME': timedelta(days=10),
 SIMPLE_JWT = {
     'ALGORITHM': 'HS256',
     'ALLOW_REFRESH': True,
     'AUTH_HEADER_TYPES': ('Bearer',),
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=10),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=1),
 }
 
 # EMAIL CONFIG
