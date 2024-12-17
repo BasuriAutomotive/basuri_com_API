@@ -36,7 +36,7 @@ class ProfileAdmin(admin.ModelAdmin):
     list_display = ('user', 'first_name', 'last_name', 'country', 'phone_code', 'otp', 'image')
     search_fields = ('first_name', 'last_name', 'user__email', 'country')
     list_filter = ('country',)
-    readonly_fields = ('user',)  # Prevent editing of the linked user field
+    # readonly_fields = ('user',)  # Prevent editing of the linked user field
 
     def get_queryset(self, request):
         """
