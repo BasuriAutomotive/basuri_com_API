@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
 
-from product.models import Product
+from product.models import Product, ProductGallery
 from accounts.permissions import IsStaff
 
 
@@ -63,13 +63,16 @@ class ProductListView(APIView):
                 for price in product.productprice_set.all()
             ]
 
+            first_image = ProductGallery.objects.filter(product=product, type="image").order_by('position').first()
+            image_url = first_image.file if first_image else None
+
             # Append each product's details to the response list
             product_data.append({
                 "id": product.id,
                 "created_at": product.updated_at,
                 "name": product.name,
                 "sku": product.sku,
-                "image": "https://basuriautomotive.com/media/photos/products/1.webp",
+                "image": image_url,
                 "vendor": product.vendor,
                 "slug": product.slug,
                 "description": product.description,
