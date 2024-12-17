@@ -243,7 +243,8 @@ class UserProfileAPIView(APIView):
             "first_name": profile.first_name,
             "last_name": profile.last_name,
             "contact_no": user.phone_number,
-            "email_address": user.email
+            "email_address": user.email,
+            "role" : user.role
         }
         
         return Response(data, status=status.HTTP_200_OK)
