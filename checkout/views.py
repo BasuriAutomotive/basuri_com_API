@@ -12,6 +12,9 @@ from accounts.models import Account, Profile
 from address.models import Address, Country, State
 from django.utils import timezone
 from decimal import Decimal
+from django.conf import settings
+
+current_url = settings.CURRENT_URL
 
 class CheckoutAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -207,7 +210,7 @@ class GuestCheckoutAPIView(APIView):
             defaults={
                 'first_name': first_name,
                 'last_name': last_name,
-                'image': 'userprofile/default.png',
+                'image': f"{current_url}media/profile_images/default.png",
                 'country': billing_country_name
             }
         )
