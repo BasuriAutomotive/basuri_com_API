@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
-from order.models import Order, OrderItem
+from order.models import Order, OrderItem, OrderStatus, OrderStatusHistory
 from payment.views import create_paypal_payment
 from product.models import Currencies, Product, ProductPrice
 from cart.models import Cart, CartItem
@@ -354,6 +354,20 @@ class GuestCheckoutAPIView(APIView):
             approval_url = create_paypal_payment(request, order.order_number)
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            # Fetch the "Order Placed" status
+            order_placed_status = OrderStatus.objects.get(name="Order Placed")
+            
+            # Create the history entry
+            OrderStatusHistory.objects.create(
+                order=order,
+                status=order_placed_status,
+            )
+            print("ho gaya")
+        except OrderStatus.DoesNotExist:
+            # Log or handle the error if "Order Placed" status is missing
+            print("OrderStatus 'Order Placed' does not exist.")
 
         response_data = {
             "detail": "Order created successfully",

@@ -9,7 +9,7 @@ from rest_framework import status
 from decouple import config
 
 from cart.models import Cart, CartItem
-from order.models import Order
+from order.models import Order, OrderStatus, OrderStatusHistory
 from address.models import Address
 from order.tasks import send_email_celery, create_erp_order_celery
 # from base.tasks import send_email_celery
@@ -195,6 +195,19 @@ class FinalizeOrderAfterPaymentAPIView(APIView):
                         create_erp_order_celery.delay(order.order_number)
                 except :
                     pass
+
+                try:
+                    # Fetch the "Payment Confirmed" status
+                    payment_confirmed_status = OrderStatus.objects.get(name="Payment Confirmed")
+                    
+                    # Create the history entry
+                    OrderStatusHistory.objects.create(
+                        order=order,
+                        status=payment_confirmed_status,
+                    )
+                except OrderStatus.DoesNotExist:
+                    # Log or handle the error if "Payment Confirmed" status is missing
+                    print("OrderStatus 'Payment Confirmed' does not exist.")
 
                 return Response(response_data, status=status.HTTP_200_OK)
             
