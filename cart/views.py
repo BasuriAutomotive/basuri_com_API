@@ -57,6 +57,7 @@ class ViewCartAPIView(APIView):
                 {
                     'product_name': item.product.name, 
                     'product_sku': item.product.sku, 
+                    'product_sku': f"/{item.product.category.slug}/{item.product.slug}",
                     'product_image': ProductGallery.objects.filter(product=item.product, type="image").order_by('position').values_list('file', flat=True).first(),
                     'quantity': item.quantity, 
                     'product_price': ProductPrice.objects.filter(product_id=item.product.id, currencies__countries__code=country_code).values('currencies__code', 'value', 'currencies__symbol').first()
@@ -118,7 +119,8 @@ class ViewCartNonAuthenticatedAPIView(APIView):
             'products': [
                 {
                     'product_name': item.product.name, 
-                    'product_sku': item.product.sku,  
+                    'product_sku': item.product.sku,
+                    'product_slug': f"/{item.product.category.slug}/{item.product.slug}",
                     'product_image': ProductGallery.objects.filter(product=item.product, type="image").order_by('position').values_list('file', flat=True).first(),
                     'quantity': item.quantity, 'product_price' : ProductPrice.objects.filter(product_id=item.product.id, currencies__countries__code=country_code).values('currencies__code', 'value', 'currencies__symbol').first()
                 } for item in cart_items
