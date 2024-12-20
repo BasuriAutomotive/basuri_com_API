@@ -287,5 +287,3 @@ class DownloadInvoicePDFView(APIView):
             return HttpResponse('Error generating PDF file')
         
         return response
-    
-
