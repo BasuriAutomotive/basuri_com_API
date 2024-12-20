@@ -20,11 +20,10 @@ class OrderListView(APIView):
         orders = Order.objects.filter(user=user, is_paid=True)
         order_list = []
 
-        print("1")
         for order in orders:
             items = OrderItem.objects.filter(order=order)
             item_list = []
-            print("2")
+
             for item in items:
                 product = item.product
                 
@@ -45,15 +44,11 @@ class OrderListView(APIView):
                     "subtotal": str(item.subtotal)
                 }
                 item_list.append(item_data)
-            print("3")
-            print(order.billing_address)
-            print(order.shipping_address)
 
             
             billing_address = get_object_or_404(Address, id=order.billing_address)
             shipping_address = get_object_or_404(Address, id=order.shipping_address)
 
-            print("4")
             order_data = {
                 "id": order.id,
                 "items": item_list,
@@ -140,12 +135,8 @@ class OrderDetailView(APIView):
 
         billing_address = get_object_or_404(Address, id=order.billing_address)
         shipping_address = get_object_or_404(Address, id=order.shipping_address)
-
-        
        
         order_status = "Delivered"
-
-
 
         order_data = {
             "id": order.id,

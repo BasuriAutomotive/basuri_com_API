@@ -38,7 +38,6 @@ def create_erp_order_celery(order_number):
     except Exception as e:
         # Handle the exception gracefully
         error_message = f"An error occurred: {e}"
-        print(error_message)
         return error_message
     return so_number
 
@@ -68,7 +67,6 @@ def get_token():
 def create_order(token, order_number):
     order = Order.objects.get(order_number=order_number)
     api_url = config('ORDER_API_URL')
-    print(token,"create_order fuction")
     headers = {
         'Authorization': f'Bearer {token}',
         'Content-Type': 'application/json'
@@ -107,15 +105,11 @@ def create_order(token, order_number):
         else:
             data["part_no"].append(i.product.sku)
             data["qty"].append(i.quantity)
-    print(data)
 
     response = requests.post(api_url, headers=headers, json=data)
-    print(response.json,"this is respones")
     if response.status_code == 200:
         order_data = response.json()
-        print(order_data,"response Order_data")
         so_number = order_data.get('order_no')
-        print(so_number,"so number")
         order.so_number = so_number
         order.save()
         return so_number

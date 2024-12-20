@@ -205,7 +205,6 @@ class RemoveAllCartItemsAPIView(APIView):
         product_sku = request.data.get('product_sku')
         try:
             product = Product.objects.get(sku=product_sku)
-            print(product_sku)
             cart_items = CartItem.objects.get_query().filter(user=user,product=product, is_active=True)
             if cart_items.count()>0:
                 cart_items.delete()

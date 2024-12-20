@@ -97,8 +97,7 @@ class FinalizeOrderAfterPaymentAPIView(APIView):
     def post(self, request):
         order_id = request.data.get('order_id')
         cart_id = request.data.get('cart_id', None)
-        # Find the payment and the associated order
-        print("step-1")
+
         try:
             order = get_object_or_404(Order, id=order_id)
             payment = Payment.find(order.payment_id)
@@ -111,13 +110,10 @@ class FinalizeOrderAfterPaymentAPIView(APIView):
                 try:
                     if order.checkout_type == 'cart':
                         # Clear the user's cart
-                        print("step-2")
                         if cart_id :
-                            print("step-3")
                             cart = Cart.objects.get(cart_id=cart_id)
                             CartItem.objects.filter(cart=cart).delete()
                             a = CartItem.objects.filter(cart=cart)
-                            print(a)
                 except:
                     pass
 
@@ -205,9 +201,8 @@ class FinalizeOrderAfterPaymentAPIView(APIView):
                         order=order,
                         status=payment_confirmed_status,
                     )
-                except OrderStatus.DoesNotExist:
-                    # Log or handle the error if "Payment Confirmed" status is missing
-                    print("OrderStatus 'Payment Confirmed' does not exist.")
+                except:
+                    pass
 
                 return Response(response_data, status=status.HTTP_200_OK)
             

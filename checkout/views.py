@@ -43,13 +43,11 @@ class CheckoutAPIView(APIView):
         if page_location == "cart":
             # Fetch cart items
             cart_items = CartItem.objects.filter(user=user)  # Assuming CartItem is related to the user
-            print('cart')
             # Check if cart is empty
             if not cart_items.exists():
                 return Response({"detail": "No items in cart to create an order."}, status=status.HTTP_400_BAD_REQUEST)
         else:
             sku = data.get('product_sku')
-            print('no cart')
             product = Product.objects.get(sku=sku)
         
         current_datetime = timezone.now()
@@ -173,9 +171,6 @@ class GuestCheckoutAPIView(APIView):
         tax = request.data.get('tax')
         order_note = request.data.get('order_note')
 
-        
-
-        print("dfgdfgdfg")
         # Create or get the guest user
         user, created = Account.objects.get_or_create(
             email=email,
@@ -184,7 +179,7 @@ class GuestCheckoutAPIView(APIView):
                 'is_active': False
             }
         )
-        print("dfgdfgdfg")
+
         profile, created = Profile.objects.get_or_create(
             user=user,
             defaults={
@@ -197,7 +192,6 @@ class GuestCheckoutAPIView(APIView):
 
         if not created and user.is_active:
             return Response({"detail": "User already exists and is active. Please log in."}, status=status.HTTP_400_BAD_REQUEST)
-        print("dfgdfgdfg")
         # Create billing address
         billing_country = get_object_or_404(Country, name=billing_country_name)
         billing_state = get_object_or_404(State, name=billing_state_name)
@@ -286,13 +280,11 @@ class GuestCheckoutAPIView(APIView):
             # Fetch cart items
             cart = Cart.objects.get(cart_id=cart_id)
             cart_items = CartItem.objects.filter(cart=cart)  # Assuming CartItem is related to the user
-            print('cart')
             # Check if cart is empty
             if not cart_items.exists():
                 return Response({"detail": "No items in cart to create an order."}, status=status.HTTP_400_BAD_REQUEST)
         else:
             sku = data.get('product_sku')
-            print('no cart')
             product = Product.objects.get(sku=sku)
 
         if page_location == "cart":
@@ -318,10 +310,8 @@ class GuestCheckoutAPIView(APIView):
                     "subtotal": str(subtotal)
                 })
         else:
-            print('direct buy now')
             product_price = get_object_or_404(ProductPrice, product=product, currencies=currency)
             unit_price = product_price.value
-            print(unit_price, 'kfjbdjfblkdjfblk')
             order.checkout_type = 'direct'
             
             order_item = OrderItem.objects.create(
@@ -358,10 +348,8 @@ class GuestCheckoutAPIView(APIView):
                 order=order,
                 status=order_placed_status,
             )
-            print("ho gaya")
-        except OrderStatus.DoesNotExist:
-            # Log or handle the error if "Order Placed" status is missing
-            print("OrderStatus 'Order Placed' does not exist.")
+        except:
+            pass
 
         response_data = {
             "detail": "Order created successfully",
