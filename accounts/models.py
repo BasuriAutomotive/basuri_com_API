@@ -34,7 +34,6 @@ class Profile(Base):
     user = models.OneToOneField(Account, on_delete=models.CASCADE, related_name='profile')
     first_name = models.CharField(max_length=50, blank=True, null=True)
     last_name = models.CharField(max_length=50, blank=True, null=True)
-    otp = models.CharField(max_length=6, blank=True, null=True)
     image = models.URLField(max_length=255, blank=True, null=True)
     country = models.CharField(blank=True, max_length=30, null=True)
     phone_code = models.CharField(max_length=10, blank=True, null=True)  # Phone extension

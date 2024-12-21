@@ -16,6 +16,7 @@ urlpatterns = [
     path('api/reset-password/', ResetPasswordView.as_view(), name="reset_password_api"),
     path('api/change-password/', ChangePasswordView.as_view(), name="change_password_api"),
     path('api/otp-validate/', OTPValidateView.as_view(), name="otp_validate_api"),
+    path('api/resend-otp/', ResendOTPAPIView.as_view(), name="resend_otp_api"),
 
     path('api/review/', UserReviewListView.as_view(), name="user_review_api"),
 

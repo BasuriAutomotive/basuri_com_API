@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Currencies, MenuItem
+from .models import Currencies, MenuItem, OTP
 
 from base.admin import BaseAdmin
 
@@ -17,3 +17,19 @@ class MenuItemAdmin(admin.ModelAdmin):
     list_filter = ['category']
 
 admin.site.register(MenuItem, MenuItemAdmin)
+
+class OTPAdmin(admin.ModelAdmin):
+    list_display = ('user', 'otp_code', 'is_used', 'expires_at', 'created_at')
+    list_filter = ('is_used', 'expires_at')
+    search_fields = ('user__email', 'otp_code')
+    readonly_fields = ('otp_code', 'created_at')
+    fieldsets = (
+        (None, {
+            'fields': ('user', 'otp_code', 'is_used')
+        }),
+        ('Timestamps', {
+            'fields': ('expires_at', 'created_at'),
+        }),
+    )
+
+admin.site.register(OTP, OTPAdmin)

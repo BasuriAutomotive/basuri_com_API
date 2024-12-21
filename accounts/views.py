@@ -1,5 +1,4 @@
 import os
-import random
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 from django.core.files.storage import default_storage
@@ -12,10 +11,10 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.permissions import IsAuthenticated
 
-
 from accounts.models import Account, Profile
-from utils.views import send_otp
+from utils.views import send_otp, validate_otp, resend_otp
 
+current_url = settings.CURRENT_URL
 
 class RegisterView(APIView):
     authentication_classes = []
@@ -36,37 +35,23 @@ class RegisterView(APIView):
         user.is_customer = True
         user.save()
 
-        otp = str(random.randint(1000, 9999))
-        profile = Profile(user=user, first_name=first_name, last_name=last_name, otp=otp)
-        profile.user_id = user.id
-        profile.save()
+        profile, created = Profile.objects.get_or_create(
+            user=user,
+            defaults={
+                'first_name': first_name,
+                'last_name': last_name,
+                'image': f"{current_url}media/profile_images/default.png",
+                'country': ""
+            }
+        )
 
         subject = "Verify Your Email - Basuri Automotive"
-        send_otp(otp, user, subject)
+        headline = "Register OTP"
+        email=user.email
+        send_otp(email, headline, subject)
 
         return Response({'detail': 'Account created successfully. Check your email for OTP.'}, status=status.HTTP_201_CREATED)
-
-
-class OTPValidateView(APIView):
-
-    authentication_classes = []
-    permission_classes = []
     
-    def post(self, request, *args, **kwargs):
-        otp = request.data.get('otp')
-        email = request.data.get('email')
-
-        if Account.objects.filter(email=email).exists():
-            current_user = Account.objects.get(email=email)
-            profile = Profile.objects.get(user=current_user)
-
-            if profile.otp == otp:
-                current_user.is_active = True
-                current_user.save()
-                login(request, current_user, backend='django.contrib.auth.backends.ModelBackend')
-                return Response({'detail': 'OTP is Verified!'}, status=status.HTTP_200_OK)
-            else:
-                return Response({'detail': 'Please Enter Valid OTP'}, status=status.HTTP_400_BAD_REQUEST)
             
 class CustomerLoginView(APIView):
     
@@ -98,6 +83,7 @@ class CustomerLoginView(APIView):
                 return Response({'detail': 'User must be active!'}, status=status.HTTP_400_BAD_REQUEST)
         else:
             return Response({'detail': 'User Not registered!'}, status=status.HTTP_400_BAD_REQUEST)
+        
 
 class CustomerLogoutView(APIView):
 
@@ -107,6 +93,7 @@ class CustomerLogoutView(APIView):
     def post(self, request, *args, **kwargs):
         logout(request)
         return Response({'detail': 'You are logged out.'}, status=status.HTTP_200_OK)
+    
 
 class ForgotPasswordView(APIView):
 
@@ -118,14 +105,10 @@ class ForgotPasswordView(APIView):
         if Account.objects.filter(email=email).exists():
             user = Account.objects.get(email=email)
 
-            otp = str(random.randint(100000, 999999))
-
-            profile = Profile.objects.get(user=user)
-            profile.otp = otp
-            profile.save()
-
+            email=user.email
             subject = "Reset Your Password - Basuri Automotive"
-            send_otp(otp, user, subject)
+            headline = "Reset Password OTP"
+            send_otp(email, headline, subject)
 
             return Response({'detail': 'OTP Sent on Your Email!'}, status=status.HTTP_200_OK)
         else:
@@ -134,25 +117,35 @@ class ForgotPasswordView(APIView):
 
 class OTPValidateView(APIView):
 
-    authentication_classes = []
-    permission_classes = []
-    
+    authentication_classes = []  
+    permission_classes = []  
+
     def post(self, request, *args, **kwargs):
-        otp = request.data.get('otp')
+        
         email = request.data.get('email')
+        otp_code = request.data.get('otp')
 
-        if Account.objects.filter(email=email).exists():
-            current_user = Account.objects.get(email=email)
-            profile = Profile.objects.get(user=current_user)
-            server_otp = profile.otp
+        # Check if the account exists
+        try:
+            user = Account.objects.get(email=email)
+        except Account.DoesNotExist:
+            return Response({'detail': 'User does not exist.'}, status=status.HTTP_404_NOT_FOUND)
 
-            if server_otp == otp:
-                current_user.is_active = True
-                current_user.save()
-                login(request, current_user, backend='django.contrib.auth.backends.ModelBackend')
-                return Response({'detail': 'OTP is Verified!'}, status=status.HTTP_200_OK)
-            else:
-                return Response({'detail': 'Please Enter Valid OTP'}, status=status.HTTP_400_BAD_REQUEST)
+        # Validate the OTP
+        is_valid, message = validate_otp(user, otp_code)
+
+        if is_valid:
+            # Activate the user account
+            user.is_active = True
+            user.save()
+
+            # Log in the user
+            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+
+            return Response({'detail': 'OTP is verified and account is activated.'}, status=status.HTTP_200_OK)
+        else:
+            return Response({'detail': message}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class OTPValidateForgotPasswordView(APIView):
 
@@ -160,50 +153,61 @@ class OTPValidateForgotPasswordView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
-        otp = request.data.get('otp')
+
+        otp_code = request.data.get('otp')
         email = request.session.get('email')
 
-        if Account.objects.filter(email=email).exists():
-            current_user = Account.objects.get(email=email)
-            profile = Profile.objects.get(user=current_user)
-            server_otp = profile.otp
+        # Check if the account exists
+        try:
+            user = Account.objects.get(email=email)
+        except Account.DoesNotExist:
+            return Response({'detail': 'User does not exist.'}, status=status.HTTP_404_NOT_FOUND)
 
-            if server_otp == otp:
-                return Response({'detail': 'OTP is Verified!'}, status=status.HTTP_200_OK)
-            else:
-                return Response({'detail': 'Please Enter Valid OTP'}, status=status.HTTP_400_BAD_REQUEST)
+        # Validate the OTP
+        is_valid, message = validate_otp(user, otp_code)
+
+        if is_valid:
+            return Response({'detail': 'OTP is verified!'}, status=status.HTTP_200_OK)
+        else:
+            return Response({'detail': message}, status=status.HTTP_400_BAD_REQUEST)
+        
 
 # RESET PASSWORD API VIEW
 class ResetPasswordView(APIView):
-    authentication_classes = []
-    permission_classes = []
+
+    authentication_classes = []  # No authentication required for this API
+    permission_classes = []      # No permissions required for this API
 
     def post(self, request, *args, **kwargs):
-        
-        otp = request.data.get('otp')
+
         email = request.data.get('email')
+        otp_code = request.data.get('otp')
         password = request.data.get('password')
         confirm_password = request.data.get('confirm_password')
 
-        if Account.objects.filter(email=email).exists():
+        # Check if the account exists
+        try:
             user = Account.objects.get(email=email)
-            profile = Profile.objects.get(user=user)
-            server_otp = profile.otp
-            server_otp = int(server_otp)
-            otp = int(otp)
+        except Account.DoesNotExist:
+            return Response({'detail': 'User does not exist.'}, status=status.HTTP_404_NOT_FOUND)
 
-            if server_otp == otp:
-                if password == confirm_password:
-                    user.set_password(password)
-                    user.save()
-                    return Response({'detail': 'Password reset successful'}, status=status.HTTP_200_OK)
-                else:
-                    return Response({'detail': 'Password do not match!'}, status=status.HTTP_400_BAD_REQUEST)
-            else:
-                return Response({'detail': 'Please Enter Valid OTP'}, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            return Response({'detail': 'Invalid values'}, status=status.HTTP_401_UNAUTHORIZED)
+        # Validate the OTP
+        is_valid, message = validate_otp(user, otp_code)
+
+        if not is_valid:
+            return Response({'detail': message}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check if the passwords match
+        if password != confirm_password:
+            return Response({'detail': 'Passwords do not match!'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Update the user's password
+        user.set_password(password)
+        user.save()
+
+        return Response({'detail': 'Password reset successful'}, status=status.HTTP_200_OK)
         
+
 class ChangePasswordView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -293,3 +297,40 @@ class UserProfileAPIView(APIView):
 
         except Exception as e:
                 return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+
+class ResendOTPAPIView(APIView):
+    authentication_classes = []
+    permission_classes = []
+
+    def post(self, request, *args, **kwargs):
+        
+        email = request.data.get('email')
+        purpose = request.data.get('purpose')
+        user = Account.objects.get(email=email)
+
+        if purpose == "register":
+            subject = "Verify Your Email - Basuri Automotive"
+            headline = "Register OTP"
+        elif purpose == "forgot":
+            subject = "Reset Your Password - Basuri Automotive"
+            headline = "Reset Password OTP"
+        else:
+            return Response({
+                "message": "Invalid Purpose!",
+                "error": str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            otp = resend_otp(user.email, headline, subject )
+            
+            return Response({
+                "message": "OTP has been resent to your email.",
+                "otp_expiry": otp.expires_at
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({
+                "message": "Failed to resend OTP. Please try again.",
+                "error": str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)

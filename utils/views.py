@@ -5,8 +5,13 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django.template.loader import render_to_string
 from django.core.mail import send_mail
+from django.utils.timezone import now
+from datetime import timedelta
 
+from accounts.models import Account
+from utils.models import OTP
 from .models import MenuItem
+from .tasks import send_otp_email_celery
 
 def build_menu_tree(menu_items):
     menu_dict = {}
@@ -32,23 +37,53 @@ class MenuItemListCreateView(View):
         menu_items = MenuItem.objects.all().values().order_by('position')
         menu_tree = build_menu_tree(menu_items)
         return JsonResponse(menu_tree, safe=False)
-    
-def send_otp(otp, user, subject):
-        from_email = 'Basuri Automotive <info@basuriautomotive.com>'  # SYSTEM SENDER EMAIL
-        recipient_list = [user.email]
-        
-        # Render the email template
-        context = {
-            'otp': otp,
-            'user': user,
-        }
-        message = render_to_string('emails/register.html', context)
 
-        # Send the email
-        send_mail(
-            subject=subject,
-            message='',  # Empty plain text body
-            html_message=message,  # HTML content
-            from_email=from_email,
-            recipient_list=recipient_list
-        )
+
+def send_otp(email, headline, subject):
+
+    user = Account.objects.get(email=email)
+
+    # Generate or reuse OTP
+    otp = OTP.generate_otp(user)
+    
+    # Trigger the Celery task to send the email
+    send_otp_email_celery.delay(user.email, headline, subject, otp.otp_code)
+
+    return otp
+
+
+def validate_otp(user, otp_code):
+    try:
+        otp = OTP.objects.get(user=user, otp_code=otp_code, is_used=False)
+        if otp.is_expired():
+            return False, "OTP has expired."
+        otp.is_used = True
+        otp.save()
+        return True, "OTP is valid."
+    except OTP.DoesNotExist:
+        return False, "Invalid OTP."
+    
+def resend_otp(email, headline, subject, validity_period=15):
+
+    user = Account.objects.get(email=email)
+
+    # Check for an unused and valid OTP
+    existing_otp = OTP.objects.filter(user=user, is_used=False, expires_at__gt=now()).first()
+
+    if existing_otp:
+        # Extend expiration time
+        existing_otp.expires_at = now() + timedelta(minutes=validity_period)
+        existing_otp.save()
+        otp_to_send = existing_otp.otp_code
+        print(f"Reusing OTP {otp_to_send} for user {user.email}")
+    else:
+        # Invalidate old OTPs
+        OTP.objects.filter(user=user, is_used=False, expires_at__gt=now()).update(is_used=True)
+        # Generate and send a new OTP
+        new_otp = OTP.generate_otp(user)
+        otp_to_send = new_otp.otp_code
+    
+    # Send the OTP email via Celery
+    send_otp_email_celery.delay(user.email, headline, subject, otp_to_send)
+
+    return existing_otp if existing_otp else new_otp

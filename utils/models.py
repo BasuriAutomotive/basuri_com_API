@@ -1,5 +1,9 @@
+import random
 from django.db import models
+from datetime import timedelta
+from django.utils.timezone import now
 
+from accounts.models import Account
 from base.models import Base
 from address.models import Country
 
@@ -30,4 +34,36 @@ class MenuItem(models.Model):
 
     def is_parent(self):
         return self.parent is None
+    
+
+
+class OTP(models.Model):
+    user = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='otps')
+    otp_code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+    
+    def is_expired(self):
+        """Check if the OTP is expired."""
+        return now() > self.expires_at
+
+    @staticmethod
+    def generate_otp(user, validity_period=15):
+        """
+        Generate a new OTP for the user.
+        
+        Args:
+            user: The user for whom the OTP is being generated.
+            validity_period: The validity period of the OTP in minutes.
+        """
+        otp_code = f"{random.randint(100000, 999999)}"
+        expires_at = now() + timedelta(minutes=validity_period)
+
+        otp = OTP.objects.create(
+            user=user,
+            otp_code=otp_code,
+            expires_at=expires_at
+        )
+        return otp
 
