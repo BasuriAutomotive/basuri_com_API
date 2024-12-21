@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 import os
 from django.conf import settings
 from django.shortcuts import get_object_or_404
@@ -48,9 +49,10 @@ class RegisterView(APIView):
         subject = "Verify Your Email - Basuri Automotive"
         headline = "Register OTP"
         email=user.email
-        send_otp(email, headline, subject)
+        valid_till = send_otp(email, headline, subject)
 
-        return Response({'detail': 'Account created successfully. Check your email for OTP.'}, status=status.HTTP_201_CREATED)
+
+        return Response({'detail': 'Account created successfully. Check your email for OTP.', 'valid_till': valid_till}, status=status.HTTP_201_CREATED)
     
             
 class CustomerLoginView(APIView):
@@ -68,8 +70,7 @@ class CustomerLoginView(APIView):
                 authenticated_user = authenticate(email=email, password=password)
                 if authenticated_user:
                     # if user.role=="customer" or user.role=="staff":
-                    login(request, authenticated_user)
-                    refresh = RefreshToken.for_user(authenticated_user)
+                    refresh = RefreshToken.for_user(user)
                     return Response({
                         'access': str(refresh.access_token),
                         'refresh': str(refresh),
@@ -108,9 +109,9 @@ class ForgotPasswordView(APIView):
             email=user.email
             subject = "Reset Your Password - Basuri Automotive"
             headline = "Reset Password OTP"
-            send_otp(email, headline, subject)
+            valid_till = send_otp(email, headline, subject)
 
-            return Response({'detail': 'OTP Sent on Your Email!'}, status=status.HTTP_200_OK)
+            return Response({'detail': 'OTP Sent on Your Email!', 'valid_till': valid_till}, status=status.HTTP_200_OK)
         else:
             return Response({'detail': 'Account does not exist!'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -139,35 +140,17 @@ class OTPValidateView(APIView):
             user.is_active = True
             user.save()
 
-            # Log in the user
-            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+            # login(request, authenticated_user)
+            refresh = RefreshToken.for_user(user)
 
-            return Response({'detail': 'OTP is verified and account is activated.'}, status=status.HTTP_200_OK)
-        else:
-            return Response({'detail': message}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({
+                'detail': 'OTP is verified and account is activated.',
+                'access': str(refresh.access_token),
+                'refresh': str(refresh),
+                'role' : user.role
+            }, status=status.HTTP_200_OK)
 
-
-class OTPValidateForgotPasswordView(APIView):
-
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request, *args, **kwargs):
-
-        otp_code = request.data.get('otp')
-        email = request.session.get('email')
-
-        # Check if the account exists
-        try:
-            user = Account.objects.get(email=email)
-        except Account.DoesNotExist:
-            return Response({'detail': 'User does not exist.'}, status=status.HTTP_404_NOT_FOUND)
-
-        # Validate the OTP
-        is_valid, message = validate_otp(user, otp_code)
-
-        if is_valid:
-            return Response({'detail': 'OTP is verified!'}, status=status.HTTP_200_OK)
+            # return Response({'detail': 'OTP is verified and account is activated.'}, status=status.HTTP_200_OK)
         else:
             return Response({'detail': message}, status=status.HTTP_400_BAD_REQUEST)
         
@@ -175,8 +158,8 @@ class OTPValidateForgotPasswordView(APIView):
 # RESET PASSWORD API VIEW
 class ResetPasswordView(APIView):
 
-    authentication_classes = []  # No authentication required for this API
-    permission_classes = []      # No permissions required for this API
+    authentication_classes = []
+    permission_classes = []
 
     def post(self, request, *args, **kwargs):
 
@@ -193,19 +176,19 @@ class ResetPasswordView(APIView):
 
         # Validate the OTP
         is_valid, message = validate_otp(user, otp_code)
-
-        if not is_valid:
+        
+        if is_valid:
+            # Check if the passwords match
+            if password != confirm_password:
+                return Response({'detail': 'Passwords do not match!'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Update the user's password
+            user.set_password(password)
+            user.save()
+            return Response({'detail': "Password reset was successful. Please proceed to log in."}, status=status.HTTP_200_OK)
+        else:
             return Response({'detail': message}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Check if the passwords match
-        if password != confirm_password:
-            return Response({'detail': 'Passwords do not match!'}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Update the user's password
-        user.set_password(password)
-        user.save()
-
-        return Response({'detail': 'Password reset successful'}, status=status.HTTP_200_OK)
         
 
 class ChangePasswordView(APIView):
@@ -307,7 +290,10 @@ class ResendOTPAPIView(APIView):
         
         email = request.data.get('email')
         purpose = request.data.get('purpose')
-        user = Account.objects.get(email=email)
+        try : 
+            user = Account.objects.get(email=email)
+        except:
+            return Response({"detail": "User does not exist!"}, status=status.HTTP_400_BAD_REQUEST)
 
         if purpose == "register":
             subject = "Verify Your Email - Basuri Automotive"
@@ -323,9 +309,12 @@ class ResendOTPAPIView(APIView):
 
         try:
             otp = resend_otp(user.email, headline, subject )
+
+            valid_till = datetime.now() + timedelta(minutes=3)
             
             return Response({
                 "message": "OTP has been resent to your email.",
+                "valid_till" : valid_till,
                 "otp_expiry": otp.expires_at
             }, status=status.HTTP_200_OK)
 

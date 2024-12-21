@@ -3,10 +3,13 @@ from django.views import View
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+from rest_framework import status
 from django.template.loader import render_to_string
 from django.core.mail import send_mail
 from django.utils.timezone import now
-from datetime import timedelta
+from datetime import datetime, timedelta
+
+from requests import Response
 
 from accounts.models import Account
 from utils.models import OTP
@@ -41,7 +44,10 @@ class MenuItemListCreateView(View):
 
 def send_otp(email, headline, subject):
 
-    user = Account.objects.get(email=email)
+    try : 
+        user = Account.objects.get(email=email)
+    except:
+        return Response({"detail": "User does not exist!"}, status=status.HTTP_400_BAD_REQUEST)
 
     # Generate or reuse OTP
     otp = OTP.generate_otp(user)
@@ -49,7 +55,10 @@ def send_otp(email, headline, subject):
     # Trigger the Celery task to send the email
     send_otp_email_celery.delay(user.email, headline, subject, otp.otp_code)
 
-    return otp
+    # Add 3 minutes to the current time
+    valid_till = datetime.now() + timedelta(minutes=3)
+
+    return valid_till
 
 
 def validate_otp(user, otp_code):
@@ -59,14 +68,16 @@ def validate_otp(user, otp_code):
             return False, "OTP has expired."
         otp.is_used = True
         otp.save()
-        return True, "OTP is valid."
+        return True, "Success! The OTP you entered is valid."
     except OTP.DoesNotExist:
-        return False, "Invalid OTP."
+        return False, "The OTP you entered is incorrect. Check and re-enter."
     
 def resend_otp(email, headline, subject, validity_period=15):
 
-    user = Account.objects.get(email=email)
-
+    try : 
+        user = Account.objects.get(email=email)
+    except:
+        return Response({"detail": "User does not exist!"}, status=status.HTTP_400_BAD_REQUEST)
     # Check for an unused and valid OTP
     existing_otp = OTP.objects.filter(user=user, is_used=False, expires_at__gt=now()).first()
 
@@ -75,7 +86,6 @@ def resend_otp(email, headline, subject, validity_period=15):
         existing_otp.expires_at = now() + timedelta(minutes=validity_period)
         existing_otp.save()
         otp_to_send = existing_otp.otp_code
-        print(f"Reusing OTP {otp_to_send} for user {user.email}")
     else:
         # Invalidate old OTPs
         OTP.objects.filter(user=user, is_used=False, expires_at__gt=now()).update(is_used=True)

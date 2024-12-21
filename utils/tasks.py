@@ -8,7 +8,10 @@ from accounts.models import Account
 @shared_task
 def send_otp_email_celery(email, headline, subject, otp_code):
         
-        user = Account.objects.get(email=email)
+        try:
+            user = Account.objects.get(email=email)
+        except:
+            pass
         
         # Render the email template
         context = {
