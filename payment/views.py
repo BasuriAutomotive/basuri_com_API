@@ -10,9 +10,8 @@ from decouple import config
 
 from cart.models import Cart, CartItem
 from order.models import Order, OrderStatus, OrderStatusHistory
-from address.models import Address
-from order.tasks import send_email_celery, create_erp_order_celery
-# from base.tasks import send_email_celery
+from utils.tasks import send_email_task
+from order.tasks import create_erp_order_task
 # from whatsapp_api.views import send_wp_message
 # from order.tasks import create_erp_order_celery, send_alert_celery
 
@@ -178,7 +177,7 @@ class FinalizeOrderAfterPaymentAPIView(APIView):
                     message = render_to_string("emails/orders/confirmation.html", message)
                     subject= "Order Confirmation"
                     email = order.user.email
-                    send_email_celery.delay(message, subject, email)
+                    send_email_task.delay(message, subject, email)
                 except:
                     pass
 
@@ -188,7 +187,7 @@ class FinalizeOrderAfterPaymentAPIView(APIView):
                     # no_production =  config('DEBUG', default=False, cast=bool)
                     erp_connection =  config('ERP_CONNECTION', default=False, cast=bool)
                     if erp_connection == True:
-                        create_erp_order_celery.delay(order.order_number)
+                        create_erp_order_task.delay(order.order_number)
                 except :
                     pass
 

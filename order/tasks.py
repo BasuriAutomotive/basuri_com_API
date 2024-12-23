@@ -1,5 +1,4 @@
 import requests
-from django.core.mail import send_mail
 from decouple import config
 from celery import shared_task, chain
 
@@ -7,26 +6,9 @@ from address.models import Address, Country
 from .models import Order
 
 
-@shared_task
-def send_email_celery(message, subject, email):
-    from_email = 'Basuri Automotive <info@basuriautomotive.com>' # SYSTEM SENDER EMAIL
-    recipient_list = [email]
-    send_mail(subject, message, from_email, recipient_list, html_message=message)
-    return None
-
-# SEND ORDER NOTIFICATION
-# @shared_task
-# def send_alert_celery(order_number):
-#     url = "https://www.smsalert.co.in/api/push.json?order_number="+order_number+'&apikey=62419f63427a9'+'&sender=OCWEBS'+'&mobileno=9104515704&text=A+new+order+has+been+placed+on+BasuriAutomotive.+Please+review+the+details:%0D%0A%0D%0AOrder+Number:++'+order_number+'%0D%0A%0D%0AKindly+ensure+timely+processing+and+fulfillment+of+the+order.%0D%0A%0D%0AThank+you%2C%0D%0AZIYA+FAB'
-#     payload = {}
-#     headers= {}
-#     response = requests.request("POST", url, headers=headers, data = payload)
-#     return None
-
-
 # ERP ORDER GENERATE
-@shared_task
-def create_erp_order_celery(order_number):
+@shared_task(name='erp_order')
+def create_erp_order_task(order_number):
     try:
         
         task_chain = chain(
@@ -115,6 +97,15 @@ def create_order(token, order_number):
         return so_number
     else:
         return None
+    
+# SEND ORDER NOTIFICATION
+# @shared_task
+# def send_alert_celery(order_number):
+#     url = "https://www.smsalert.co.in/api/push.json?order_number="+order_number+'&apikey=62419f63427a9'+'&sender=OCWEBS'+'&mobileno=9104515704&text=A+new+order+has+been+placed+on+BasuriAutomotive.+Please+review+the+details:%0D%0A%0D%0AOrder+Number:++'+order_number+'%0D%0A%0D%0AKindly+ensure+timely+processing+and+fulfillment+of+the+order.%0D%0A%0D%0AThank+you%2C%0D%0AZIYA+FAB'
+#     payload = {}
+#     headers= {}
+#     response = requests.request("POST", url, headers=headers, data = payload)
+#     return None
 
 # @shared_task
 # def order_auto_update():

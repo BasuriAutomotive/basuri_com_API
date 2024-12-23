@@ -11,7 +11,7 @@ from requests import Response
 from accounts.models import Account
 from utils.models import OTP
 from .models import MenuItem
-from .tasks import send_otp_email_celery
+from .tasks import send_otp_email_task
 
 def build_menu_tree(menu_items):
     menu_dict = {}
@@ -43,7 +43,7 @@ def send_otp(email, headline, subject):
     except:
         return Response({"detail": "User does not exist!"}, status=status.HTTP_400_BAD_REQUEST)
     otp = OTP.generate_otp(user)
-    send_otp_email_celery.delay(user.email, headline, subject, otp.otp_code)
+    send_otp_email_task.delay(user.email, headline, subject, otp.otp_code)
     valid_till = datetime.now() + timedelta(minutes=3)
     return valid_till
 
@@ -74,5 +74,5 @@ def resend_otp(email, headline, subject, validity_period=15):
         OTP.objects.filter(user=user, is_used=False, expires_at__gt=now()).update(is_used=True)
         new_otp = OTP.generate_otp(user)
         otp_to_send = new_otp.otp_code
-    send_otp_email_celery.delay(user.email, headline, subject, otp_to_send)
+    send_otp_email_task.delay(user.email, headline, subject, otp_to_send)
     return existing_otp if existing_otp else new_otp
