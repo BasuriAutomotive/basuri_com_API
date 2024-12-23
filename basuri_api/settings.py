@@ -200,8 +200,11 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_BROKER_CONNECTION_RETRY = True
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+
+# FLOWER SETTINGS
 CELERY_RESULT_BACKEND = 'django-db'
 CELERY_RESULT_EXTENDED = True
+CELERY_FLOWER_PORT = 5555
 
 # Define a custom interval schedule
 # four_times_a_day_schedule = schedule(run_every=timedelta(hours=6))
