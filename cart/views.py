@@ -16,7 +16,12 @@ class AddToCartAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        country_code = request.data.get('country_code', 'US')
+        country_code = request.query_params.get('country_code', 'US')
+        # Try to fetch the currency based on the given country code
+        currency = Currencies.objects.filter(countries__code=country_code).first()
+        # If no currency is found, default to the US currency
+        if not currency:
+            currency = get_object_or_404(Currencies, countries__code='US')
         product_sku = request.data.get('product_sku')
         quantity = int(request.data.get('quantity', 1))
 
@@ -36,7 +41,7 @@ class AddToCartAPIView(APIView):
             'product_sku': cart_item.product.sku, 
             'product_image': '',  
             'quantity': cart_item.quantity, 
-            'product_price' : ProductPrice.objects.filter(product_id=cart_item.product.id, currencies__countries__code=country_code).values('currencies__code', 'value', 'currencies__symbol').first()
+            'product_price' : ProductPrice.objects.filter(product_id=cart_item.product.id, currencies=currency).values('currencies__code', 'value', 'currencies__symbol').first()
             }
 
         return Response(data, status=status.HTTP_201_CREATED)
@@ -48,8 +53,14 @@ class ViewCartAPIView(APIView):
 
     def get(self, request):
         user = request.user
-        country_code = request.data.get('country_code', 'US')
-        currency = get_object_or_404(Currencies, countries__code=country_code)
+
+        country_code = request.query_params.get('country_code', 'US')
+        # Try to fetch the currency based on the given country code
+        currency = Currencies.objects.filter(countries__code=country_code).first()
+        # If no currency is found, default to the US currency
+        if not currency:
+            currency = get_object_or_404(Currencies, countries__code='US')
+
         cart_items = CartItem.objects.get_query().filter(user=user, is_active=True)
         data = {
             'currency': currency.symbol,  # Root level currency field
@@ -57,10 +68,10 @@ class ViewCartAPIView(APIView):
                 {
                     'product_name': item.product.name, 
                     'product_sku': item.product.sku, 
-                    'product_sku': f"/{item.product.category.slug}/{item.product.slug}",
+                    'product_slug': f"/{item.product.category.slug}/{item.product.slug}",
                     'product_image': ProductGallery.objects.filter(product=item.product, type="image").order_by('position').values_list('file', flat=True).first(),
                     'quantity': item.quantity, 
-                    'product_price': ProductPrice.objects.filter(product_id=item.product.id, currencies__countries__code=country_code).values('currencies__code', 'value', 'currencies__symbol').first()
+                    'product_price': ProductPrice.objects.filter(product_id=item.product.id, currencies=currency).values('currencies__code', 'value', 'currencies__symbol').first()
                 } for item in cart_items
             ]
         }
@@ -70,7 +81,12 @@ class ViewCartAPIView(APIView):
 
 class AddToCartNonAuthenticatedAPIView(APIView):
     def post(self, request):
-        country_code = request.data.get('country_code', 'US')
+        country_code = request.query_params.get('country_code', 'US')
+        # Try to fetch the currency based on the given country code
+        currency = Currencies.objects.filter(countries__code=country_code).first()
+        # If no currency is found, default to the US currency
+        if not currency:
+            currency = get_object_or_404(Currencies, countries__code='US')
         product_sku = request.data.get('product_sku')
         quantity = int(request.data.get('quantity', 1))
         cart_id = request.data.get('cart_id')
@@ -95,7 +111,7 @@ class AddToCartNonAuthenticatedAPIView(APIView):
             'product_sku': cart_item.product.sku, 
             'product_image': '',  
             'quantity': cart_item.quantity, 
-            'product_price' : ProductPrice.objects.filter(product_id=cart_item.product.id, currencies__countries__code=country_code).values('currencies__code', 'value', 'currencies__symbol').first()
+            'product_price' : ProductPrice.objects.filter(product_id=cart_item.product.id, currencies=currency).values('currencies__code', 'value', 'currencies__symbol').first()
             }
 
         return Response(data, status=status.HTTP_201_CREATED)
@@ -103,8 +119,12 @@ class AddToCartNonAuthenticatedAPIView(APIView):
 
 class ViewCartNonAuthenticatedAPIView(APIView):
     def get(self, request):
-        country_code = request.data.get('country_code', 'US')
-        currency = get_object_or_404(Currencies, countries__code=country_code)
+        country_code = request.query_params.get('country_code', 'US')
+        # Try to fetch the currency based on the given country code
+        currency = Currencies.objects.filter(countries__code=country_code).first()
+        # If no currency is found, default to the US currency
+        if not currency:
+            currency = get_object_or_404(Currencies, countries__code='US')
         cart_id = request.query_params.get('cart_id')
 
         try:
@@ -122,7 +142,7 @@ class ViewCartNonAuthenticatedAPIView(APIView):
                     'product_sku': item.product.sku,
                     'product_slug': f"/{item.product.category.slug}/{item.product.slug}",
                     'product_image': ProductGallery.objects.filter(product=item.product, type="image").order_by('position').values_list('file', flat=True).first(),
-                    'quantity': item.quantity, 'product_price' : ProductPrice.objects.filter(product_id=item.product.id, currencies__countries__code=country_code).values('currencies__code', 'value', 'currencies__symbol').first()
+                    'quantity': item.quantity, 'product_price' : ProductPrice.objects.filter(product_id=item.product.id, currencies=currency).values('currencies__code', 'value', 'currencies__symbol').first()
                 } for item in cart_items
             ]
         }

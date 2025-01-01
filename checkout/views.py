@@ -1,10 +1,11 @@
+import stripe
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from order.models import Order, OrderItem, OrderStatus, OrderStatusHistory
-from payment.views import create_paypal_payment
+from payment.views import create_payment_intent, create_paypal_payment
 from product.models import Currencies, Product, ProductPrice
 from cart.models import Cart, CartItem
 from discount.models import Coupon
@@ -15,6 +16,7 @@ from decimal import Decimal
 from django.conf import settings
 
 current_url = settings.CURRENT_URL
+stripe.api_key = settings.STRIPE_SECRET_KEY
 
 class CheckoutAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -24,19 +26,29 @@ class CheckoutAPIView(APIView):
         user = request.user if request.user.is_authenticated else None
         
         # Extracting order details
-        country_code = data.get('country_code', 'US')
+        country_code = request.query_params.get('country_code', 'US')
+        # Try to fetch the currency based on the given country code
+        currency = Currencies.objects.filter(countries__code=country_code).first()
+        # If no currency is found, default to the US currency
+        if not currency:
+            currency = get_object_or_404(Currencies, countries__code='US')
+
         page_location = data.get('page_location')
         billing_address_id = data.get('billing_address')
         shipping_address_id = data.get('shipping_address')
+        same_address = data.get('isShippingAddressIsSameAsBilling')
         discount_code = data.get('discount_code')
         # currency_code = data.get('currency')
-        tax = data.get('tax')
+        # tax = data.get('tax')
         order_note = data.get('order_note')
+        payment_type = data.get('payment_type')
         
         # Fetching Address instances
         billing_address = get_object_or_404(Address, id=billing_address_id)
-        shipping_address = get_object_or_404(Address, id=shipping_address_id)
-        currency = get_object_or_404(Currencies, countries__code=country_code)
+        if same_address == "true":
+            shipping_address = billing_address
+        else:
+            shipping_address = get_object_or_404(Address, id=shipping_address_id)
 
         subtotal=Decimal(0)
        
@@ -64,13 +76,18 @@ class CheckoutAPIView(APIView):
             country=billing_address.country.name,  # Assuming billing address country is used
             total_amount=Decimal(0),  # Initial amount is set to 0 and will be updated later
             currency_id=currency.id,
-            tax=Decimal(tax),
             order_number=order_number,
             order_date=timezone.now(),
-            order_note=order_note,
-            ip=request.META.get('REMOTE_ADDR')
         )
-        
+
+        try:
+            order.ip = data.get('ip_address')
+            order.order_note=order_note
+            order.payment_type = payment_type
+            order.save()
+        except:
+            pass
+
         # Calculate the total amount based on cart items
         total_amount = Decimal(0)
 
@@ -128,17 +145,100 @@ class CheckoutAPIView(APIView):
         order.discount_amount = discount
         order.save()
 
-        # Create PayPal payment
-        try:
-            approval_url = create_paypal_payment(request, order.order_number)
-        except Exception as e:
-            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        # # Create PayPal payment
+        # try:
+        #     approval_url = create_paypal_payment(request, order.order_number)
+        # except Exception as e:
+        #     return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Prepare response data
-        response_data = {
-            "detail": "Order created successfully",
-            "approval_url" : approval_url,
-        }
+        # # Prepare response data
+        # response_data = {
+        #     "detail": "Order created successfully",
+        #     "approval_url" : approval_url,
+        # }
+
+        # return Response(response_data, status=status.HTTP_201_CREATED)
+
+        if payment_type == "paypal":
+            try:
+                approval_url = create_paypal_payment(request, order.order_number)
+            except Exception as e:
+                return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            
+            try:
+                # Fetch the "Order Placed" status
+                order_placed_status = OrderStatus.objects.get(name="Order Placed")
+                
+                # Create the history entry
+                OrderStatusHistory.objects.create(
+                    order=order,
+                    status=order_placed_status,
+                )
+            except:
+                pass
+
+            response_data = {
+                "detail": "Order created successfully",
+                "approval_url": approval_url,
+            }
+
+        elif payment_type == "stripe":
+
+            try:
+                amount = int(Decimal(order.total_amount) * 100)
+                print(amount)
+                currency = currency.code
+                lowercase_currency = currency.lower()
+                print(lowercase_currency)
+                client_secret = create_payment_intent(request, amount, lowercase_currency, order.id)
+            except:
+                return Response("Stripe Not Working", status=status.HTTP_400_BAD_REQUEST)
+            
+            try:
+                # Fetch the "Order Placed" status
+                order_placed_status = OrderStatus.objects.get(name="Order Placed")
+                
+                # Create the history entry
+                OrderStatusHistory.objects.create(
+                    order=order,
+                    status=order_placed_status,
+                )
+            except:
+                pass
+            
+            response_data = {
+                "detail": "Order created successfully",
+                "client_secret": client_secret,
+            }
+
+        elif payment_type == "credit_card":
+
+            try:
+                amount = int(Decimal(order.total_amount) * 100)
+                print(amount)
+                currency = currency.code
+                lowercase_currency = currency.lower()
+                print(lowercase_currency)
+                client_secret = create_payment_intent(request, amount, lowercase_currency, order.id)
+            except:
+                return Response("Card Not Working", status=status.HTTP_400_BAD_REQUEST)
+            
+            try:
+                # Fetch the "Order Placed" status
+                order_placed_status = OrderStatus.objects.get(name="Order Placed")
+                
+                # Create the history entry
+                OrderStatusHistory.objects.create(
+                    order=order,
+                    status=order_placed_status,
+                )
+            except:
+                pass
+            
+            response_data = {
+                "detail": "Order created successfully",
+                "client_secret": client_secret,
+            }
 
         return Response(response_data, status=status.HTTP_201_CREATED)
 
@@ -146,11 +246,16 @@ class CheckoutAPIView(APIView):
 class GuestCheckoutAPIView(APIView):
     def post(self, request):
         data = request.data
-        country_code = data.get('country_code', 'US')
+        country_code = request.query_params.get('country_code', 'US')
+        # Try to fetch the currency based on the given country code
+        currency = Currencies.objects.filter(countries__code=country_code).first()
+        # If no currency is found, default to the US currency
+        if not currency:
+            currency = get_object_or_404(Currencies, countries__code='US')
         page_location = data.get('page_location')
-        billing_data = request.data.get('billing_address', {})
-        same_address = request.data.get('isShippingAddressIsSameAsBilling')
-        shipping_data = request.data.get('shipping_address', {})
+        billing_data = data.get('billing_address', {})
+        same_address = data.get('isShippingAddressIsSameAsBilling')
+        shipping_data = data.get('shipping_address', {})
 
         # Extract billing address details
         email = billing_data.get('email')
@@ -166,10 +271,11 @@ class GuestCheckoutAPIView(APIView):
         billing_contact_person = billing_data.get('contact_person', f"{first_name} {last_name}")
         billing_contact_phone = billing_data.get('contact_phone', '')
 
-        cart_id = request.data.get('cart_id')
-        discount_code = request.data.get('discount_code')
-        tax = request.data.get('tax')
-        order_note = request.data.get('order_note')
+        cart_id = data.get('cart_id')
+        discount_code = data.get('discount_code')
+        # tax = data.get('tax')
+        order_note = data.get('order_note')
+        payment_type = data.get('payment_type')
 
         # Create or get the guest user
         user, created = Account.objects.get_or_create(
@@ -242,7 +348,6 @@ class GuestCheckoutAPIView(APIView):
 
             shipping_address_id = shipping_address.id
 
-        currency = get_object_or_404(Currencies, countries__code=country_code)
 
         # Fetch cart items for guest user
         # cart = Cart.objects.get(cart_id=cart_id)
@@ -266,12 +371,17 @@ class GuestCheckoutAPIView(APIView):
             country=billing_address.country.name,
             total_amount=Decimal(0),
             currency_id=currency.id,
-            tax=Decimal(tax),
             order_number=order_number,
             order_date=timezone.now(),
-            order_note=order_note,
-            ip=request.META.get('REMOTE_ADDR')
         )
+
+        try:
+            order.ip = data.get('ip_address')
+            order.order_note=order_note
+            order.payment_type = payment_type
+            order.save()
+        except:
+            pass
 
         total_amount = Decimal(0)
         order_items = []
@@ -334,29 +444,85 @@ class GuestCheckoutAPIView(APIView):
         order.discount_amount = discount
         order.save()
 
-        try:
-            approval_url = create_paypal_payment(request, order.order_number)
-        except Exception as e:
-            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        
-        try:
-            # Fetch the "Order Placed" status
-            order_placed_status = OrderStatus.objects.get(name="Order Placed")
+        if payment_type == "paypal":
+            try:
+                approval_url = create_paypal_payment(request, order.order_number)
+            except Exception as e:
+                return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
             
-            # Create the history entry
-            OrderStatusHistory.objects.create(
-                order=order,
-                status=order_placed_status,
-            )
-        except:
-            pass
+            try:
+                # Fetch the "Order Placed" status
+                order_placed_status = OrderStatus.objects.get(name="Order Placed")
+                
+                # Create the history entry
+                OrderStatusHistory.objects.create(
+                    order=order,
+                    status=order_placed_status,
+                )
+            except:
+                pass
 
-        response_data = {
-            "detail": "Order created successfully",
-            "approval_url": approval_url,
-        }
+            response_data = {
+                "detail": "Order created successfully",
+                "approval_url": approval_url,
+            }
+
+        elif payment_type == "stripe":
+
+            try:
+                amount = int(Decimal(order.total_amount) * 100)
+                print(amount)
+                currency = currency.code
+                lowercase_currency = currency.lower()
+                print(lowercase_currency)
+                client_secret = create_payment_intent(request, amount, lowercase_currency, order.id)
+            except:
+                return Response("Stripe Not Working", status=status.HTTP_400_BAD_REQUEST)
+            
+            try:
+                # Fetch the "Order Placed" status
+                order_placed_status = OrderStatus.objects.get(name="Order Placed")
+                
+                # Create the history entry
+                OrderStatusHistory.objects.create(
+                    order=order,
+                    status=order_placed_status,
+                )
+            except:
+                pass
+            
+            response_data = {
+                "detail": "Order created successfully",
+                "client_secret": client_secret,
+            }
+
+        elif payment_type == "credit_card":
+
+            try:
+                amount = int(Decimal(order.total_amount) * 100)
+                print(amount)
+                currency = currency.code
+                lowercase_currency = currency.lower()
+                print(lowercase_currency)
+                client_secret = create_payment_intent(request, amount, lowercase_currency, order.id)
+            except:
+                return Response("Card Not Working", status=status.HTTP_400_BAD_REQUEST)
+            
+            try:
+                # Fetch the "Order Placed" status
+                order_placed_status = OrderStatus.objects.get(name="Order Placed")
+                
+                # Create the history entry
+                OrderStatusHistory.objects.create(
+                    order=order,
+                    status=order_placed_status,
+                )
+            except:
+                pass
+            
+            response_data = {
+                "detail": "Order created successfully",
+                "client_secret": client_secret,
+            }
 
         return Response(response_data, status=status.HTTP_201_CREATED)
-
-
-

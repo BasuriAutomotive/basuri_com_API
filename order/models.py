@@ -1,9 +1,12 @@
 from django.db import models
-from accounts.models import Account
-from product.models import Product, Currencies
-from base.models import Base
+from django.utils.timezone import now
 from django.core.validators import MinValueValidator
 from django.utils.translation import gettext_lazy as _
+
+from base.models import Base
+from accounts.models import Account
+from product.models import Product, Currencies
+
 
 class OrderStatus(Base):
     name = models.CharField(max_length=50, unique=True)
@@ -33,11 +36,11 @@ class Order(Base):
     order_number = models.CharField(max_length=30)
     so_number = models.CharField(max_length=30, null=True, blank=True)
     order_note = models.CharField(max_length=100, blank=True, null=True)
-    ip = models.CharField(blank=True, max_length=30)
+    ip = models.CharField(blank=True, max_length=30, null=True)
     checkout_type = models.CharField(max_length=10, choices=CHECKOUT_CHOICES, default='cart', null=True)
     discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, validators=[MinValueValidator(0.00)])
-    tracking_number = models.CharField(max_length=100, blank=True, null=True)
 
+    payment_type = models.CharField(max_length=20, default="paypal", null=True)
     provider_order_id = models.CharField(_("Order ID"), max_length=40, null=True, blank=True, default="")
     payment_id = models.CharField(_("Payment ID"), max_length=36, null=True, blank=True, default="")
     signature_id = models.CharField(_("Signature ID"), max_length=128, null=True, blank=True, default="")
@@ -74,3 +77,15 @@ class OrderStatusHistory(Base):
 
     def __str__(self):
         return f"Order {self.order.order_number} - {self.status.name} at {self.changed_at} (Position {self.position})"
+
+class Shipment(Base):
+    order = models.ForeignKey(Order, related_name='shipments', on_delete=models.CASCADE)
+    logistic_name = models.CharField(max_length=100)
+    tracking_number = models.CharField(max_length=100, unique=True)
+    shipment_created_date = models.DateTimeField(default=now)
+    notes = models.TextField(max_length=500, null=True)
+    class Meta:
+        ordering = ['shipment_created_date']
+
+    def __str__(self):
+        return f"{self.logistic_name} - {self.tracking_number}"

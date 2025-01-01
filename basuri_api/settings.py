@@ -144,7 +144,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CURRENT_URL = config('CURRENT_URL')
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000", "http://192.168.1.21:3000", "http://193.203.164.88"  # e.g., "http://192.168.1.10:3000"
+    "http://localhost:3000", "http://localhost:3001", "http://192.168.1.21:3000", "http://193.203.164.88"  # e.g., "http://192.168.1.10:3000"
 ]
 
 # CORS_ALLOWED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='', cast=lambda v: [s.strip() for s in v.split(',')])
@@ -188,6 +188,10 @@ paypalrestsdk.configure({
     "client_id": config('PAYPAL_API_CLIENT_ID'),
     "client_secret": config('PAYPAL_API_CLIENT_SECRET')
 })
+
+# STRIPE SETTINGS
+STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY')
+STRIPE_PUBLISHABLE_KEY = config('STRIPE_PUBLISHABLE_KEY')
 
 # CELERY SETTINGS 
 from celery.schedules import crontab

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Currencies, MenuItem, OTP
+from .models import Currencies, MenuItem, OTP, Newsletter
 
 from base.admin import BaseAdmin
 
@@ -33,3 +33,12 @@ class OTPAdmin(admin.ModelAdmin):
     )
 
 admin.site.register(OTP, OTPAdmin)
+
+class NewsletterAdmin(BaseAdmin):
+    list_display = ('email', 'created_at', 'updated_at', 'is_active', 'is_deleted')
+    list_filter = ('is_active', 'is_deleted', 'created_at')
+    search_fields = ('email',)
+    readonly_fields = ('created_at', 'updated_at')
+
+# Register the model with the admin site
+admin.site.register(Newsletter, NewsletterAdmin)

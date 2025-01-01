@@ -2,10 +2,12 @@ import random
 from django.db import models
 from datetime import timedelta
 from django.utils.timezone import now
+from django.core.validators import EmailValidator
 
 from accounts.models import Account
 from base.models import Base
 from address.models import Country
+
 
 class Currencies(Base):
     currency_type = models.CharField(max_length=10)
@@ -67,3 +69,9 @@ class OTP(models.Model):
         )
         return otp
 
+
+class Newsletter(Base):
+    email = models.EmailField(unique=True,validators=[EmailValidator()])
+    
+    def __str__(self):
+        return self.email
