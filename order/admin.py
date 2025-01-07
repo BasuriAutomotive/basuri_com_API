@@ -61,7 +61,7 @@ class OrderStatusHistoryAdmin(BaseAdmin):
 @admin.register(Shipment)
 class ShipmentAdmin(BaseAdmin):
     """Admin view for Shipment"""
-    list_display = ('order', 'logistic_name', 'tracking_number', 'shipment_created_date')
+    list_display = ('order', 'logistic_name', 'tracking_number', 'created_at')
     search_fields = ('order__order_number', 'logistic_name', 'tracking_number')
-    readonly_fields = ('shipment_created_date',)
-    fields = ('order', 'logistic_name', 'tracking_number', 'shipment_created_date', 'additional_info')
+    readonly_fields = BaseAdmin.readonly_fields
+    fields = ('order', 'logistic_name', 'tracking_number', 'created_at', 'notes')

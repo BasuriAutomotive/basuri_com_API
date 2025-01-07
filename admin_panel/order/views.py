@@ -1,4 +1,5 @@
 from django.shortcuts import get_object_or_404, HttpResponse
+from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -10,7 +11,7 @@ from xhtml2pdf import pisa
 
 from product.models import ProductGallery
 from address.models import Address
-from order.models import Order, OrderItem
+from order.models import Order, OrderItem, Shipment
 from accounts.permissions import IsStaff
 
 
@@ -136,6 +137,16 @@ class OrderListView(APIView):
                 "discount_coupon": None, 
                 "erp" : bool(so_number)
             }
+            # Add logistics data if shipments exist
+            if order.shipments.exists():
+                shipment = order.shipments.first()  # Assuming you only want the first shipment
+                order_data["logistic"] = {
+                    "logistic_name": shipment.logistic_name,
+                    "tracking_number": shipment.tracking_number,
+                    "notes": shipment.notes,
+                }
+            else:
+                order_data["logistic"] = None  # Or omit the logistic key if not applicable
             order_list.append(order_data)
 
         return Response(order_list)
@@ -168,3 +179,108 @@ class DownloadInvoicePDFView(APIView):
         
         return response
     
+
+class CreateShipmentAPIView(APIView):
+
+    permission_classes = [IsAuthenticated, IsStaff]
+    
+    def post(self, request, *args, **kwargs):
+        try:
+            # Parse JSON data from the request body
+            import json
+            data = json.loads(request.body)
+            
+            # Validate required fields
+            required_fields = ['order_number', 'logistic_name', 'tracking_number']
+            missing_fields = [field for field in required_fields if field not in data]
+            if missing_fields:
+                return Response(
+                    {"error": f"Missing fields: {', '.join(missing_fields)}"},
+                    status=400
+                )
+            
+            # Validate the order
+            try:
+                order = Order.objects.get(order_number=data['order_number'])
+            except ObjectDoesNotExist:
+                return Response({"error": "Order not found."}, status=404)
+            
+            # Validate tracking_number uniqueness
+            if Shipment.objects.filter(tracking_number=data['tracking_number']).exists():
+                return Response({"error": "Tracking number already exists."}, status=400)
+            
+            # Create the shipment
+            shipment = Shipment.objects.create(
+                order=order,
+                logistic_name=data['logistic_name'],
+                tracking_number=data['tracking_number'],
+                notes=data.get('notes', '')  # Notes are optional
+            )
+            
+            # Return the response
+            return Response({
+                "order_number": shipment.order.order_number,
+                "logistic_name": shipment.logistic_name,
+                "tracking_number": shipment.tracking_number,
+                "notes": shipment.notes
+            }, status=201)
+        
+        except json.JSONDecodeError:
+            return Response({"error": "Invalid JSON format."}, status=400)
+        
+class UpdateShipmentAPIView(APIView):
+    permission_classes = [IsAuthenticated, IsStaff]
+
+    def put(self, request, *args, **kwargs):
+        """
+        Handle shipment updates by order number.
+        """
+        try:
+            import json
+            data = json.loads(request.body)
+
+            # Validate required fields
+            required_fields = ['order_number']
+            missing_fields = [field for field in required_fields if field not in data]
+            if missing_fields:
+                return Response(
+                    {"error": f"Missing fields: {', '.join(missing_fields)}"},
+                    status=400
+                )
+
+            # Find the order using the order_number
+            try:
+                order = Order.objects.get(order_number=data['order_number'])
+            except ObjectDoesNotExist:
+                return Response({"error": "Order not found."}, status=404)
+
+            # Find the shipment associated with the order
+            try:
+                shipment = Shipment.objects.get(order=order)
+            except Shipment.DoesNotExist:
+                return Response({"error": "Shipment not found for this order."}, status=404)
+
+            # Update fields, including the tracking number
+            shipment.logistic_name = data.get('logistic_name', shipment.logistic_name)
+            shipment.tracking_number = data.get('tracking_number', shipment.tracking_number)
+            shipment.notes = data.get('notes', shipment.notes)
+
+            # Check if tracking number is being updated and ensure it's unique
+            new_tracking_number = data.get('tracking_number')
+
+            if new_tracking_number and new_tracking_number != shipment.tracking_number:
+                # Only check for tracking number uniqueness across all shipments except the current one
+                if Shipment.objects.filter(tracking_number=new_tracking_number).exclude(id=shipment.id).exists():
+                    return Response({"error": "Tracking number already exists."}, status=400)
+    
+            shipment.save()
+
+            return Response({
+                "order_number": shipment.order.order_number,
+                "logistic_name": shipment.logistic_name,
+                "tracking_number": shipment.tracking_number,
+                "notes": shipment.notes
+            }, status=200)
+
+        except json.JSONDecodeError:
+            return Response({"error": "Invalid JSON format."}, status=400)

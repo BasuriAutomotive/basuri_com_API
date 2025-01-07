@@ -167,6 +167,8 @@ class ProductDetailsView(View):
         product_dict = {
             'category': product.category.name,
             'name': product.name.title(),
+            'meta_title': product.meta_title,
+            'meta_description': product.meta_description,
             'slug': product.slug,
             'sku' : product.sku,
             'description': product.description,

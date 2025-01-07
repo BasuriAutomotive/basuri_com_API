@@ -44,6 +44,7 @@ INSTALLED_APPS = [
 
     'corsheaders',
     'django_celery_results',
+    'rest_framework',
 ]
 
 MIDDLEWARE = [
@@ -144,7 +145,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CURRENT_URL = config('CURRENT_URL')
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000", "http://localhost:3001", "http://192.168.1.21:3000", "http://193.203.164.88"  # e.g., "http://192.168.1.10:3000"
+    "http://localhost:3000", "http://localhost:3001", "http://192.168.1.21:3000", "http://193.203.164.88", "http://192.168.1.177:8000"  # e.g., "http://192.168.1.10:3000"
 ]
 
 # CORS_ALLOWED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='', cast=lambda v: [s.strip() for s in v.split(',')])

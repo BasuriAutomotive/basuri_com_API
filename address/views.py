@@ -152,6 +152,7 @@ class CountryWithStatesListAPIView(APIView):
                 "flag": flag_url,
                 "name": country.name,
                 "code": country.code,
+                "currency": country.currency,
                 "states": state_list
             }
             

@@ -82,10 +82,9 @@ class Shipment(Base):
     order = models.ForeignKey(Order, related_name='shipments', on_delete=models.CASCADE)
     logistic_name = models.CharField(max_length=100)
     tracking_number = models.CharField(max_length=100, unique=True)
-    shipment_created_date = models.DateTimeField(default=now)
     notes = models.TextField(max_length=500, null=True)
     class Meta:
-        ordering = ['shipment_created_date']
+        ordering = ['created_at']
 
     def __str__(self):
         return f"{self.logistic_name} - {self.tracking_number}"
