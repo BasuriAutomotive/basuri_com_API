@@ -5,7 +5,7 @@ from django.db.models import Q
 
 from review.models import Review
 from utils.models import Currencies
-from .models import Category, Product, ProductGallery, ProductPrice
+from .models import Category, Product, ProductAttribute, ProductGallery, ProductPrice
 from django.conf import settings
 
 current_url = settings.CURRENT_URL
@@ -163,7 +163,12 @@ class ProductDetailsView(View):
             }
             reviews.append(review_data)
         
-
+        try:
+            variation = product_variants(request, product.parent_sku)
+            
+        except Exception as e:
+            variation = []  # Default to an empty list in case of any exception
+        
         product_dict = {
             'category': product.category.name,
             'name': product.name.title(),
@@ -178,7 +183,8 @@ class ProductDetailsView(View):
             'price': product_price,
             'files': files_dict,
             'reviews': reviews,
-            'images' : images
+            'images' : images,
+            'variation' : variation,
         }
 
         return JsonResponse(product_dict, safe=False)
@@ -246,3 +252,47 @@ class ProductSearchAPIView(View):
             return JsonResponse(response, safe=False)
         else:
             return HttpResponse(status=404)
+        
+
+def product_variants(request, parent_sku):
+    try:
+        # Fetch all products with the given parent_sku
+        products = Product.objects.filter(parent_sku=parent_sku, is_available=True)
+
+        if not products.exists():
+            return JsonResponse({"error": "No products found for the given parent SKU."}, status=404)
+
+        # Construct the response list
+        variations = []
+        for product in products:
+            try:
+                # Fetch the first image from the product gallery
+                product_gallery = ProductGallery.objects.filter(product=product, type="image").order_by('position').first()
+
+                # Check if the file is a valid ImageField or URL
+                if product_gallery and hasattr(product_gallery.file, 'url'):
+                    img_url = product_gallery.file.url
+                else:
+                    img_url = product_gallery.file if product_gallery else None
+
+                # Fetch product attributes dynamically
+                attributes = ProductAttribute.objects.filter(product=product).select_related('attribute')
+
+                # Process each attribute for the product
+                for attr in attributes:
+                    variations.append({
+                        "attribute": attr.attribute.name if attr.attribute else None,  # Attribute name
+                        "img": img_url,  # First image URL,
+                        'slug': "/" + product.category.slug + "/" + product.slug + "/",
+                        "value": attr.value if attr.value else None,  # Attribute value
+                        "value_text": attr.value_text if attr.value_text else None  # Attribute description
+                    })
+
+            except:
+                pass
+        return variations
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
