@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Category, Product, ProductGallery, ProductPrice
+from .models import Category, Product, ProductGallery, ProductPrice, Attribute, ProductAttribute
 from base.admin import BaseAdmin
 
 class CategoryAdmin(BaseAdmin):
@@ -38,3 +38,17 @@ admin.site.register(Category, CategoryAdmin)
 admin.site.register(Product, ProductAdmin)
 admin.site.register(ProductGallery, ProductGalleryAdmin)
 admin.site.register(ProductPrice, ProductPriceAdmin)
+
+@admin.register(Attribute)
+class AttributeAdmin(admin.ModelAdmin):
+    list_display = ('name',)  # Display the name in the list view
+    search_fields = ('name',)  # Add a search bar for the name field
+    ordering = ('name',)  # Order attributes alphabetically by name
+
+@admin.register(ProductAttribute)
+class ProductAttributeAdmin(admin.ModelAdmin):
+    list_display = ('product', 'attribute', 'value', 'value_text', 'position')  # Columns in list view
+    list_filter = ('attribute',)  # Add a filter sidebar for the attribute field
+    search_fields = ('product__name', 'attribute__name', 'value', 'value_text')  # Add a search bar
+    ordering = ('position',)  # Order by the position field
+    autocomplete_fields = ('product', 'attribute')

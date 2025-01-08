@@ -51,6 +51,7 @@ class Product(Base, MetaSEO):
     category = models.ForeignKey(Category, on_delete=models.CASCADE, null=True)
     name = models.CharField(max_length=255)
     sku = models.CharField(max_length=10, unique=True,)
+    parent_sku = models.CharField(max_length=15, null=True)
     vendor = models.CharField(max_length=20, default='Basuri Automotive')
     slug = models.SlugField(max_length=200, unique=True)
     description = models.TextField(blank=True)
@@ -86,3 +87,24 @@ class ProductPrice(Base):
     currencies = models.ForeignKey(
         Currencies, default=None, on_delete=models.CASCADE)
     value = models.DecimalField(max_digits=12, decimal_places=2)
+
+# Model for Attribute
+class Attribute(Base):
+    name = models.CharField("Name", max_length=50)
+
+    def __str__(self):
+        return self.name
+
+
+# Model for Property
+class ProductAttribute(Base):
+    product = models.ForeignKey(
+        Product, on_delete=models.CASCADE, related_name='product_property')
+    attribute = models.ForeignKey(
+        Attribute, on_delete=models.SET_NULL, null=True, related_name='property_attribute')
+    value = models.CharField(max_length=150)
+    value_text = models.CharField(max_length=150,blank=True,null=True)
+    position=models.PositiveIntegerField(default=0)
+
+    def __str__(self):
+        return self.attribute.name
