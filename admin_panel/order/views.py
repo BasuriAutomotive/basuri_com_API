@@ -19,7 +19,7 @@ class OrderListView(APIView):
     permission_classes = [IsAuthenticated, IsStaff]
 
     def get(self, request):
-        orders = Order.objects.get_reverse_query()
+        orders = Order.objects.get_reverse_orders()
         order_list = []
 
         

@@ -14,12 +14,12 @@ class BaseManager(models.Manager):
         """
         return super().get_queryset().filter(is_deleted=False)
     
-    def get_reverse_query(self):
+    def get_reverse_orders(self):
         """
         Override the default queryset to exclude soft-deleted objects.
         By default, only active (non-deleted) objects will be returned.
         """
-        return super().get_queryset().filter(is_deleted=False).order_by('-id')
+        return super().get_queryset().filter(is_deleted=False, is_paid=True).order_by('-id')
 
     def all_with_deleted(self):
         """
