@@ -24,6 +24,7 @@ class RegisterView(APIView):
         first_name = request.data.get('first_name')
         last_name = request.data.get('last_name')
         email = request.data.get('email')
+        email = email.lower()
         phone_number = request.data.get('phone_number')
         password = request.data.get('password')
         if Account.objects.filter(email=email).exists():
@@ -53,6 +54,7 @@ class CustomerLoginView(APIView):
     permission_classes = []
     def post(self, request, *args, **kwargs):
         email = request.data.get('email')
+        email = email.lower()
         password = request.data.get('password')
         if Account.objects.filter(email=email).exists():
             user = Account.objects.get(email=email)
@@ -89,6 +91,7 @@ class ForgotPasswordView(APIView):
     permission_classes = []
     def post(self, request, *args, **kwargs):
         email = request.data.get('email')
+        email = email.lower()
         if Account.objects.filter(email=email).exists():
             user = Account.objects.get(email=email)
             email=user.email
@@ -105,6 +108,7 @@ class OTPValidateView(APIView):
     permission_classes = []  
     def post(self, request, *args, **kwargs):
         email = request.data.get('email')
+        email = email.lower()
         otp_code = request.data.get('otp')
         try:
             user = Account.objects.get(email=email)
@@ -130,6 +134,7 @@ class ResetPasswordView(APIView):
     permission_classes = []
     def post(self, request, *args, **kwargs):
         email = request.data.get('email')
+        email = email.lower()
         otp_code = request.data.get('otp')
         password = request.data.get('password')
         confirm_password = request.data.get('confirm_password')
@@ -215,6 +220,7 @@ class ResendOTPAPIView(APIView):
     permission_classes = []
     def post(self, request, *args, **kwargs):
         email = request.data.get('email')
+        email = email.lower()
         purpose = request.data.get('purpose')
         try : 
             user = Account.objects.get(email=email)

@@ -196,6 +196,7 @@ class OrderTrackingAPIView(APIView):
     def post(self, request):
         order_number = request.data.get('order_number')
         email = request.data.get('email')
+        email = email.lower()
 
         if not order_number or not email:
             return Response({"detail": "Order number and email are required."}, status=status.HTTP_400_BAD_REQUEST)
