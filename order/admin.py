@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Order, OrderItem, OrderStatus, OrderStatusHistory, Shipment
+from .models import Order, OrderItem, OrderStatus, OrderStatusHistory, OrderAction, Shipment
 from base.admin import BaseAdmin
 
 class OrderItemInline(admin.TabularInline):
@@ -65,3 +65,10 @@ class ShipmentAdmin(BaseAdmin):
     search_fields = ('order__order_number', 'logistic_name', 'tracking_number')
     readonly_fields = BaseAdmin.readonly_fields
     fields = ('order', 'logistic_name', 'tracking_number', 'created_at', 'notes')
+
+@admin.register(OrderAction)
+class OrderActionAdmin(admin.ModelAdmin):
+    list_display = ('order', 'action_name', 'status', 'updated_at', 'details')
+    list_filter = ('action_name', 'status', 'updated_at')
+    search_fields = ('order__order_id', 'action_name', 'details')
+    ordering = ('-updated_at',)
