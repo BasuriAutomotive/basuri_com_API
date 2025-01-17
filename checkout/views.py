@@ -259,6 +259,7 @@ class GuestCheckoutAPIView(APIView):
 
         # Extract billing address details
         email = billing_data.get('email')
+        email = email.lower()
         first_name = billing_data.get('first_name')
         last_name = billing_data.get('last_name')
 

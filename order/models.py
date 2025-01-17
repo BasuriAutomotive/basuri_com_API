@@ -78,6 +78,24 @@ class OrderStatusHistory(Base):
     def __str__(self):
         return f"Order {self.order.order_number} - {self.status.name} at {self.changed_at} (Position {self.position})"
 
+    
+class OrderAction(models.Model):
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('SUCCESS', 'Success'),
+        ('FAILED', 'Failed'),
+    ]
+
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='order_actions')
+    action_name = models.CharField(max_length=20)  # Action name without using CHOICES
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    details = models.TextField(blank=True, null=True) 
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.order.order_number} - {self.action_name} - {self.get_status_display()}"
+
+
 class Shipment(Base):
     order = models.ForeignKey(Order, related_name='shipments', on_delete=models.CASCADE)
     logistic_name = models.CharField(max_length=100)
