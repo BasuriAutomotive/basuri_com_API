@@ -192,7 +192,7 @@ class FinalizeOrderAfterPaymentAPIView(APIView):
                             message = render_to_string("emails/orders/confirmation.html", message)
                             subject= "Order Confirmation"
                             email = order.user.email
-                            send_email_task.delay(message, subject, email)
+                            send_email_task.delay(message, subject, email, order.pk)
                         except:
                             pass
 
@@ -210,8 +210,8 @@ class FinalizeOrderAfterPaymentAPIView(APIView):
                             # Fetch the "Payment Confirmed" status
                             payment_confirmed_status = OrderStatus.objects.get(name="Payment Confirmed")
 
-                            # Create the history entry
-                            OrderStatusHistory.objects.create(
+                            # Get or create the OrderStatusHistory entry
+                            OrderStatusHistory.objects.get_or_create(
                                 order=order,
                                 status=payment_confirmed_status,
                             )
@@ -294,7 +294,7 @@ class FinalizeOrderAfterPaymentAPIView(APIView):
                         message = render_to_string("emails/orders/confirmation.html", message)
                         subject= "Order Confirmation"
                         email = order.user.email
-                        send_email_task.delay(message, subject, email)
+                        send_email_task.delay(message, subject, email, order.pk)
                     except:
                         pass
 
@@ -312,8 +312,8 @@ class FinalizeOrderAfterPaymentAPIView(APIView):
                         # Fetch the "Payment Confirmed" status
                         payment_confirmed_status = OrderStatus.objects.get(name="Payment Confirmed")
 
-                        # Create the history entry
-                        OrderStatusHistory.objects.create(
+                        # Get or create the history entry
+                        OrderStatusHistory.objects.get_or_create(
                             order=order,
                             status=payment_confirmed_status,
                         )

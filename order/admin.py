@@ -68,7 +68,7 @@ class ShipmentAdmin(BaseAdmin):
 
 @admin.register(OrderAction)
 class OrderActionAdmin(admin.ModelAdmin):
-    list_display = ('order', 'action_name', 'status', 'updated_at', 'details')
+    list_display = ('order__order_number', 'action_name', 'status', 'updated_at', 'details')
     list_filter = ('action_name', 'status', 'updated_at')
     search_fields = ('order__order_id', 'action_name', 'details')
     ordering = ('-updated_at',)

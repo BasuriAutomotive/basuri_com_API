@@ -3,25 +3,50 @@ from decouple import config
 from celery import shared_task, chain
 
 from address.models import Address, Country
-from .models import Order
+from .models import Order, OrderAction
 
 
 # ERP ORDER GENERATE
 @shared_task(name='erp_order')
 def create_erp_order_task(order_number):
     try:
+        # Retrieve the order
+        order = Order.objects.get(order_number=order_number)
         
+        # Get or create the OrderAction for ERP
+        action, created = OrderAction.objects.get_or_create(
+            order=order,
+            action_name="CREATE_ERP",
+        )
+
+        # If the action is already successful, skip further processing
+        if not created and action.status == 'SUCCESS':
+            return "ERP order already created successfully."
+
+        # Reset the action status to PENDING for retries
+        action.status = 'PENDING'
+        action.details = None  # Clear previous details if any
+        action.save()
+
+        # Perform the ERP order creation task
         task_chain = chain(
-            get_token.s(), 
+            get_token.s(),
             create_order.s(order_number),
         )()
         so_number = task_chain.get()
-        
+
+
+        return so_number
+
     except Exception as e:
-        # Handle the exception gracefully
-        error_message = f"An error occurred: {e}"
+        # Handle the exception gracefully and update the action status
+        error_message = f"An error occurred during ERP order creation: {e}"
+        if 'action' in locals():
+            action.status = 'FAILED'
+            action.details = error_message
+            action.save()
+
         return error_message
-    return so_number
 
 
 # GET TOKEN FROM ERP
@@ -48,6 +73,13 @@ def get_token():
 @shared_task
 def create_order(token, order_number):
     order = Order.objects.get(order_number=order_number)
+
+    # Get or create the OrderAction for ERP
+    action, created = OrderAction.objects.get_or_create(
+        order=order,
+        action_name="CREATE_ERP",
+    )
+
     api_url = config('ORDER_API_URL')
     headers = {
         'Authorization': f'Bearer {token}',
@@ -94,8 +126,17 @@ def create_order(token, order_number):
         so_number = order_data.get('order_no')
         order.so_number = so_number
         order.save()
+        
+        # Update the action status to SUCCESS upon completion
+        action.status = 'SUCCESS'
+        action.details = f"ERP order created successfully. SO Number: {so_number}"
+        action.save()
+        
         return so_number
     else:
+        action.status = 'FAILED'
+        action.details = None
+        action.save()
         return None
     
 # SEND ORDER NOTIFICATION

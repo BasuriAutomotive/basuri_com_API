@@ -93,7 +93,7 @@ class OrderAction(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.order.order_id} - {self.action_name} - {self.get_status_display()}"
+        return f"{self.order.order_number} - {self.action_name} - {self.get_status_display()}"
 
 
 class Shipment(Base):
