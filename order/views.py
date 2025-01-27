@@ -199,12 +199,12 @@ class OrderTrackingAPIView(APIView):
         email = email.lower()
 
         if not order_number or not email:
-            return Response({"detail": "Order number and email are required."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": "Order number and email are required."}, status=400)
 
         try:
             order = Order.objects.get(order_number=order_number, user__email=email)
         except Order.DoesNotExist:
-            return Response({"detail": "Order not found or email does not match."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"detail": "Order not found or email does not match."}, status=404)
 
         # Fetch the status history for the order
         status_history = OrderStatusHistory.objects.filter(order=order).order_by('position')
