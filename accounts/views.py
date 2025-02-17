@@ -73,7 +73,16 @@ class CustomerLoginView(APIView):
                 else:
                     return Response({'detail': 'Wrong Password!'}, status=status.HTTP_401_UNAUTHORIZED)
             else:
-                return Response({'detail': 'User must be active!'}, status=status.HTTP_400_BAD_REQUEST)
+                subject = "Verify Your Email - Basuri Automotive"
+                headline = "Account Activate OTP"
+                email=user.email
+                valid_till = send_otp(email, headline, subject)
+                return Response({
+                    'detail': 'User is inactive. Please validate OTP to activate your account.',
+                    'redirect_to_otp_page': True,
+                    'valid_till' : valid_till
+                }, status=status.HTTP_401_UNAUTHORIZED)
+                # return Response({'detail': 'User must be active!'}, status=status.HTTP_400_BAD_REQUEST)
         else:
             return Response({'detail': 'User Not registered!'}, status=status.HTTP_400_BAD_REQUEST)
         
