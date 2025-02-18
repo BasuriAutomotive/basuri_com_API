@@ -144,12 +144,9 @@ class CountryWithStatesListAPIView(APIView):
                 }
                 for state in states
             ]
-            
-            flag_url = f"{settings.STATIC_URL}country/{country.code.lower()}.png"
-            flag_url = request.build_absolute_uri(flag_url)
-
+        
             country_data = {
-                "flag": flag_url,
+                "id" : country.id,
                 "name": country.name,
                 "code": country.code,
                 "currency": country.currency,
