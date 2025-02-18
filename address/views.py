@@ -139,6 +139,7 @@ class CountryWithStatesListAPIView(APIView):
             states = State.objects.filter(country=country)
             state_list = [
                 {
+                    "id": state.id,
                     "name": state.name,
                     "code": state.code
                 }
