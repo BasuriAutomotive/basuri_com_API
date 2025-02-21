@@ -1,4 +1,5 @@
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
+from django.core.validators import validate_email
 from django.db import models
 from .managers import AccountManager
 from base.models import Base
@@ -15,7 +16,7 @@ class Account(AbstractBaseUser, PermissionsMixin, Base):
         ('super_admin', 'Super Admin'),
     ]
 
-    email = models.EmailField(unique=True, max_length=255)
+    email = models.EmailField(unique=True, max_length=255, validators=[validate_email])
     phone_number = models.CharField(max_length=15, blank=True, null=True)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='customer')  # User role field
     is_active = models.BooleanField(default=True)
