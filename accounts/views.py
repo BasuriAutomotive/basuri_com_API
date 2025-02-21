@@ -11,6 +11,8 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.permissions import IsAuthenticated
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
 
 from accounts.models import Account, Profile
 from utils.views import send_otp, validate_otp, resend_otp
@@ -129,7 +131,7 @@ class OTPValidateView(APIView):
             user.save()
             refresh = RefreshToken.for_user(user)
             return Response({
-                'detail': 'OTP is verified and account is activated.',
+                'detail': 'OTP is verified.',
                 'access': str(refresh.access_token),
                 'refresh': str(refresh),
                 'role' : user.role
@@ -230,22 +232,21 @@ class ResendOTPAPIView(APIView):
     def post(self, request, *args, **kwargs):
         email = request.data.get('email')
         email = email.lower()
-        purpose = request.data.get('purpose')
+        if not email:
+            return Response({'error': 'Email is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        email = email.lower()
+        try:
+            validate_email(email)
+        except ValidationError:
+            return Response({'error': 'Invalid email format.'}, status=status.HTTP_400_BAD_REQUEST)
         try : 
             user = Account.objects.get(email=email)
         except:
             return Response({"detail": "User does not exist!"}, status=status.HTTP_400_BAD_REQUEST)
-        if purpose == "register":
-            subject = "Verify Your Email - Basuri Automotive"
-            headline = "Register OTP"
-        elif purpose == "forgot":
-            subject = "Reset Your Password - Basuri Automotive"
-            headline = "Reset Password OTP"
-        else:
-            return Response({
-                "message": "Invalid Purpose!",
-                "error": str(e)
-            }, status=status.HTTP_400_BAD_REQUEST)
+
+        subject = "Verify OTP - Basuri Automotive"
+        headline = "Login OTP"
+
         try:
             otp = resend_otp(user.email, headline, subject )
             valid_till = datetime.now() + timedelta(minutes=3)
@@ -259,3 +260,50 @@ class ResendOTPAPIView(APIView):
                 "message": "Failed to resend OTP. Please try again.",
                 "error": str(e)
             }, status=status.HTTP_400_BAD_REQUEST)
+        
+
+class SignInView(APIView):
+    authentication_classes = []
+    permission_classes = []
+    def post(self, request, *args, **kwargs):
+        email = request.data.get('email')
+        if not email:
+            return Response({'error': 'Email is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        email = email.lower()
+        try:
+            validate_email(email)
+        except ValidationError:
+            return Response({'error': 'Invalid email format.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if Account.objects.filter(email=email).exists():
+            user = Account.objects.get(email=email)
+            subject = "Verify OTP - Basuri Automotive"
+            headline = "Login OTP"
+            email=user.email
+            valid_till = send_otp(email, headline, subject)
+            return Response({
+                'detail': 'Check email for login code.',
+                'valid_till' : valid_till
+            }, status=status.HTTP_200_OK)
+        else:
+            user = Account.objects.create_user(email=email)
+            user.is_active = False
+            user.is_customer = True
+            user.save()
+            profile, created = Profile.objects.get_or_create(
+                user=user,
+                defaults={
+                    'first_name': "",
+                    'last_name': "",
+                    'image': f"{current_url}media/profile_images/default.png",
+                    'country': ""
+                }
+            )
+            subject = "Verify OTP - Basuri Automotive"
+            headline = "Login OTP"
+            email=user.email
+            valid_till = send_otp(email, headline, subject)
+        return Response({
+            'detail': 'Check email for login code.',
+            'valid_till': valid_till
+        }, status=status.HTTP_201_CREATED)
