@@ -89,11 +89,11 @@ class OrderAdmin(admin.ModelAdmin):
     readonly_fields = ('erp_sync_button',)
 
     def erp_sync_button(self, obj):
-        """Show a button to trigger ERP sync only if so_number is missing."""
-        if not obj.so_number:
+        """Show a button to trigger ERP sync only if order is paid and so_number is missing."""
+        if obj.is_paid and not obj.so_number:
             url = reverse("sync-erp", args=[obj.pk])
-            return format_html('<a class="button" href="{}">Sync to ERP</a>', url)
-        return "ERP Synced"
+            return format_html('<a class="button" style="color: white; background: #28a745; padding: 5px 10px; text-decoration: none; border-radius: 5px;" href="{}">Sync to ERP</a>', url)
+        return "ERP Synced" if obj.so_number else "-"
 
     erp_sync_button.short_description = "ERP Sync"
 
