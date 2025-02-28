@@ -63,7 +63,7 @@ def get_token():
     }
     response = requests.post(api_url, data=data)
     if response.status_code == 200:
-        token = response.json().get('data', {}).get('access')
+        token = response.json().get('access')
         return token
     else:
         return None

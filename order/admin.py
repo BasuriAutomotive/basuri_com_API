@@ -1,7 +1,17 @@
 from django.contrib import admin
+from django.urls import reverse
 
 from .models import Order, OrderItem, OrderStatus, OrderStatusHistory, OrderAction, Shipment
 from base.admin import BaseAdmin
+
+
+from django.contrib import admin
+from django.utils.html import format_html
+from django.core.exceptions import ObjectDoesNotExist
+
+from .models import Order, OrderItem, OrderStatus, OrderStatusHistory, OrderAction, Shipment
+from base.admin import BaseAdmin
+from .tasks import create_erp_order_task  # Import your Celery task
 
 class OrderItemInline(admin.TabularInline):
     """Inline admin view for OrderItem"""
@@ -25,15 +35,15 @@ class ShipmentInline(admin.TabularInline):
     can_delete = True
 
 
-@admin.register(Order)
-class OrderAdmin(BaseAdmin):
-    """Admin view for Order"""
-    list_display = ('order_number', 'user', 'checkout_type', 'total_amount', 'order_date', 'total_amount', 'is_paid', 'so_number')
-    list_filter = BaseAdmin.list_filter + ('is_paid', 'checkout_type', 'currency')
-    search_fields = ('order_number', 'user__email', 'so_number')
-    readonly_fields = BaseAdmin.readonly_fields + ('order_number', 'order_date', 'payment_date', 'provider_order_id', 'payment_id', 'signature_id')
+# @admin.register(Order)
+# class OrderAdmin(BaseAdmin):
+#     """Admin view for Order"""
+#     list_display = ('order_number', 'user', 'checkout_type', 'total_amount', 'order_date', 'total_amount', 'is_paid', 'so_number')
+#     list_filter = BaseAdmin.list_filter + ('is_paid', 'checkout_type', 'currency')
+#     search_fields = ('order_number', 'user__email', 'so_number')
+#     readonly_fields = BaseAdmin.readonly_fields + ('order_number', 'order_date', 'payment_date', 'provider_order_id', 'payment_id', 'signature_id')
 
-    inlines = [OrderItemInline, OrderStatusHistoryInline]
+#     inlines = [OrderItemInline, OrderStatusHistoryInline]
 
 
 @admin.register(OrderItem)
@@ -72,3 +82,19 @@ class OrderActionAdmin(admin.ModelAdmin):
     list_filter = ('action_name', 'status', 'updated_at')
     search_fields = ('order__order_id', 'action_name', 'details')
     ordering = ('-updated_at',)
+
+
+class OrderAdmin(admin.ModelAdmin):
+    list_display = ('order_number', 'user', 'checkout_type', 'total_amount', 'order_date', 'is_paid', 'so_number', 'erp_sync_button')
+    readonly_fields = ('erp_sync_button',)
+
+    def erp_sync_button(self, obj):
+        """Show a button to trigger ERP sync only if so_number is missing."""
+        if not obj.so_number:
+            url = reverse("sync-erp", args=[obj.pk])
+            return format_html('<a class="button" href="{}">Sync to ERP</a>', url)
+        return "ERP Synced"
+
+    erp_sync_button.short_description = "ERP Sync"
+
+admin.site.register(Order, OrderAdmin)
