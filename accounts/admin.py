@@ -3,6 +3,14 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from .models import Account, Profile
 from django.utils.translation import gettext_lazy as _
 
+# Profile Inline (Read-Only)
+class ProfileInline(admin.StackedInline):
+    model = Profile
+    can_delete = False  # Prevent deletion
+    readonly_fields = ('first_name', 'last_name', 'country', 'phone_code', 'image')  # Make fields read-only
+    extra = 0  # Do not show extra empty forms
+    verbose_name_plural = "Profile Information"
+
 # Custom UserAdmin
 class AccountAdmin(BaseUserAdmin):
     list_display = ('email', 'phone_number', 'role', 'is_staff', 'is_active', 'is_deleted', 'created_at', 'updated_at')
@@ -24,6 +32,8 @@ class AccountAdmin(BaseUserAdmin):
     search_fields = ('email', 'phone_number', 'role')
     ordering = ('email',)
     filter_horizontal = ('groups', 'user_permissions')
+
+    inlines = [ProfileInline] 
 
     def get_queryset(self, request):
         """

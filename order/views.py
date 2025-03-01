@@ -1,24 +1,21 @@
 from decimal import Decimal
-from django.shortcuts import get_object_or_404, HttpResponse
+from django.shortcuts import get_object_or_404, HttpResponse, redirect
+from django.urls import reverse
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.template.loader import get_template
+from django.contrib import messages
+from django.http import HttpResponseRedirect, JsonResponse
+from decouple import config
 from xhtml2pdf import pisa
 
 
 from address.models import Address
 from product.models import ProductGallery
 from .models import Order, OrderItem, OrderStatus, OrderStatusHistory
+from .tasks import create_erp_order_task
 
-
-from django.shortcuts import get_object_or_404, redirect
-from django.contrib import messages
-from django.http import JsonResponse
-from decouple import config
-
-from .models import Order
-from .tasks import create_erp_order_task  # Import Celery task
 
 
 class OrderListView(APIView):
@@ -300,14 +297,12 @@ class DownloadInvoicePDFView(APIView):
 
 
 def sync_erp_order_view(request, order_id):
-    """Django view to trigger ERP order creation via Celery task."""
     order = get_object_or_404(Order, id=order_id)
-    
     erp_connection = config('ERP_CONNECTION', default=False, cast=bool)
     if erp_connection:
         create_erp_order_task.delay(order.order_number)
         messages.success(request, "ERP order creation triggered successfully.")
-        return JsonResponse({"success": True, "message": "ERP order sync triggered."})
+        return HttpResponseRedirect(reverse("admin:order_order_changelist"))
     else:
         messages.error(request, "ERP connection is disabled.")
-        return JsonResponse({"success": False, "message": "ERP connection is disabled."}, status=400)
+        return redirect("admin:order_order_changelist")
