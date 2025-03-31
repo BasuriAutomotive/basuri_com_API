@@ -297,8 +297,8 @@ class GuestCheckoutAPIView(APIView):
             }
         )
 
-        if not created and user.is_active:
-            return Response({"detail": "User already exists and is active. Please log in."}, status=status.HTTP_400_BAD_REQUEST)
+        # if not created and user.is_active:
+        #     return Response({"detail": "User already exists and is active. Please log in."}, status=status.HTTP_400_BAD_REQUEST)
         # Create billing address
         billing_country = get_object_or_404(Country, name=billing_country_name)
         billing_state = get_object_or_404(State, name=billing_state_name)
